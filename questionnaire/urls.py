@@ -16,8 +16,18 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from student import views as student_views
+from poll import views as poll_views
+from django.conf.urls import url
+
 
 urlpatterns = [
     # path('admin/', admin.site.urls),
     path('student/', student_views.student),
+
+    url(r'^polls/(.*)$', poll_views.polls),
+    url(r'^poll/(.+)$', poll_views.meta),
+    url(r'^whitelist/(.+)$', poll_views.whitelist),
+    url(r'^whitelist_delete/(.+)$', poll_views.whitelist_delete),
+    url(r'^whitelist_import/(.+)$', poll_views.whitelist_import),
+
 ]

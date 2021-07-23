@@ -2,7 +2,7 @@ from django.db import models
 
 
 class Questionnaire(models.Model):
-    status = models.SmallIntegerField(default=0, null=True)  # {0:草稿 1:发布中 2:暂停发布}
+    status = models.SmallIntegerField(default=0, null=True)  # {0:草稿 1:发布中 2:暂停发布 -1:已归档}
     oneoff = models.BooleanField(default=False, null=True)  # {true: 一次性问卷，不能修改，可以多次填写 false: 一人一份的问卷，只能在原内容上修改}
     title = models.CharField(max_length=200, null=True)
     scope = models.SmallIntegerField(default=2, null=True)  #{1:动态筛选，设置条件，有黑名单 2:静态名单，手动导入白名单}
