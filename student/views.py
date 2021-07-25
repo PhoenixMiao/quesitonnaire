@@ -9,13 +9,11 @@ from Utils.midd import errMsg
 from http import HTTPStatus
 
 
-#
 def student(request):
     page_num = request.GET.get('p', 1)
     length = request.GET.get('l', 5)
-    # TODO
     userId = '20130053'
-    permission = '4'
+#    permission = '4'
     relations = Instructor_Student.objects.filter(zgh=userId)
     xhs = [ele.xh for ele in relations]
     students = Student.objects.filter(xh__in=xhs).order_by('xh')

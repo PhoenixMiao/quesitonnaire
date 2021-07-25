@@ -24,3 +24,4 @@ def paginator2dict(page, fields=[]):
 def request_body_serialze(request):
     querydict = json.loads(request.body.decode("utf-8"))
     return querydict
+
