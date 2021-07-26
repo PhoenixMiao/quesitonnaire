@@ -79,12 +79,17 @@ def whitelist_delete(request, pollId):
 @permitted_methods(["POST"])
 def whitelist_import(request, pollId):
     # TODO 可以参考https://docs.djangoproject.com/zh-hans/3.0/topics/http/file-uploads/
-    xhs = handle_uploaded_file(upload_file(request))
-    for xh in xhs:
-        whitelist = Whitelist.objects.filter(questionnaireId=pollId,xh=xh)
-        if len(whitelist) == 0 :
-            Whitelist.objects.create(questionnaire=pollId,xh=xh)
-    return JsonResponse(data={'message': 'ok'}, json_dumps_params={'ensure_ascii': False})
+    xhs = upload_file(request)
+    if xhs[0] == False :
+        return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': xhs[1]},
+                            json_dumps_params={'ensure_ascii': False})
+    else:
+        xhs.remove("学号")
+        for xh in xhs:
+            whitelist = Whitelist.objects.filter(questionnaireId=pollId,xh=xh)
+            if len(whitelist) == 0 :
+                Whitelist.objects.create(questionnaireId=pollId,xh=xh)
+        return JsonResponse(data={'message': 'ok'}, json_dumps_params={'ensure_ascii': False})
 
 
 @permitted_methods(["GET"])
