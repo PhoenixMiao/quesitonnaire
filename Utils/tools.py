@@ -29,3 +29,6 @@ def request_body_serialze2(request):
     tmp = json.loads(request.body)
     return tmp.get("file")
 
+def request_body_serialize3(request):
+    return json.loads(request.body)
+
