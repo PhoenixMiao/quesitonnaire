@@ -23,11 +23,16 @@ from django.conf.urls import url
 urlpatterns = [
     # path('admin/', admin.site.urls),
     path('student/', student_views.student),
-
+    path('student/import/',student_views.student_import),
+    path('student/change/',student_views.student_change),
     url(r'^polls/(.*)$', poll_views.polls),
     url(r'^poll/(.+)$', poll_views.meta),
     url(r'^whitelist/(.+)$', poll_views.whitelist),
     url(r'^whitelist_delete/(.+)$', poll_views.whitelist_delete),
     url(r'^whitelist_import/(.+)$', poll_views.whitelist_import),
-
+    url(r'^blacklist/(.+)$', poll_views.blacklist),
+    url(r'^blacklist_delete/(.+)$', poll_views.blacklist_delete),
+    url(r'^blacklist_import/(.+)$', poll_views.blacklist_import),
+    url(r'^poll_create/', poll_views.poll_create),
+    url(r'^poll_change_status/(.+)$',poll_views.poll_change_status),
 ]

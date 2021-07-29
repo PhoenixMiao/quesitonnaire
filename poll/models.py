@@ -92,7 +92,7 @@ class HistoryRecord(models.Model):
         db_table = 'history_record'
 
 
-class Whilelist(models.Model):
+class Whitelist(models.Model):
     questionnaireId = models.IntegerField(default=0, null=False)  # 问卷id
     xh = models.CharField(max_length=30, default="", null=True)  # 学号
     createTime = models.DateTimeField(auto_now_add=True)
