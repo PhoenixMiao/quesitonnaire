@@ -38,43 +38,43 @@ def student_import(request):
     userName = 'Tang'
     relations = Instructor_Student.objects.filter(zgh=userId)
     xhs = [ele.xh for ele in relations]
-    if xhs.count(stu_mes.get("学号"))>0 :
+    if xhs.count(stu_mes.get("xh"))>0 :
         return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '该学生已存在'}, json_dumps_params={'ensure_ascii': False})
-    relations2 = Student.objects.filter(xh=stu_mes.get("学号"))
+    relations2 = Student.objects.filter(xh=stu_mes.get("xh"))
     if len(relations2) >0 :
         return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '该学生已存在'},json_dumps_params={'ensure_ascii': False})
-    Student.objects.create(xh=stu_mes.get("学号"),xm=stu_mes.get("姓名"),xq=stu_mes.get("校区"),sfzx=stu_mes.get("是否在校"),sfzj=True,
-                           cc=stu_mes.get("学历层次"),glyx=stu_mes.get("管理院系"),sfdr=True,sftb=False)
-    Instructor_Student.objects.create(zgh=stu_mes.get("辅导员职工号"),xm=stu_mes.get("辅导员姓名"),xh=stu_mes.get("学号"))
-    relations3 = DepartAdmin.objects.filter(zgh=stu_mes.get("辅导员职工号"))
+    Student.objects.create(xh=stu_mes.get("xh"),xm=stu_mes.get("name"),xq=stu_mes.get("xq"),sfzx=stu_mes.get("sfzx"),sfzj=True,
+                           cc=stu_mes.get("cc"),glyx=stu_mes.get("glyx"),sfdr=True,sftb=False)
+    Instructor_Student.objects.create(zgh=stu_mes.get("instructor_num"),xm=stu_mes.get("instructor_name"),xh=stu_mes.get("xh"))
+    relations3 = DepartAdmin.objects.filter(zgh=stu_mes.get("instructor_num"))
     if(len(relations3)==0):
-        DepartAdmin.objects.create(zgh=stu_mes.get("辅导员职工号"),xm=stu_mes.get("辅导员姓名"),)
+        DepartAdmin.objects.create(zgh=stu_mes.get("instructor_num"),xm=stu_mes.get("instructor_name"),)
     return JsonResponse(data={'message': 'ok'}, json_dumps_params={'ensure_ascii': False})
 
 
 @permitted_methods(["POST"])
 def student_change(request):
     stu_mes = request_body_serialize3(request)
-    relations = Student.objects.filter(xh=stu_mes.get("学号"))
+    relations = Student.objects.filter(xh=stu_mes.get("xh"))
     if len(relations) == 0 :
         return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '该学生不存在'}, json_dumps_params={'ensure_ascii': False})
     elif len(relations) >1 :
         return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '存在多个相同学号的学生'},json_dumps_params={'ensure_ascii': False})
     stu = relations[0]
     for item in stu_mes.keys():
-        if item == "姓名":
+        if item == "name":
             stu.xm = stu_mes.get(item)
-        elif item == "校区":
+        elif item == "xq":
             stu.xq = stu_mes.get(item)
-        elif item == "是否在校":
+        elif item == "sfzx":
             stu.sfzx = stu_mes.get(item)
-        elif item == "学历":
+        elif item == "cc":
             stu.cc = stu_mes.get(item)
-        elif item == "管理院系":
+        elif item == "glyx":
             stu.glyx = stu_mes.get(item)
-        elif item == "辅导员姓名" or "辅导员工号":
-            if item == "辅导员姓名":
-                relations2 = Instructor_Student.objects.filter(xh = stu_mes.get("学号"))
+        elif item == "instructor_name" or "instructor_num":
+            if item == "instructor_name":
+                relations2 = Instructor_Student.objects.filter(xh = stu_mes.get("xh"))
                 if len(relations2)==0:
                     return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '该学生不存在'},json_dumps_params={'ensure_ascii': False})
                 elif len(relations2)>1:
@@ -82,8 +82,8 @@ def student_change(request):
                 else:
                     stuin = relations2[0]
                     stuin.xm = stu_mes.get(item)
-            elif  item == "辅导员工号":
-                relations2 = Instructor_Student.objects.filter(xh = stu_mes.get("学号"))
+            elif  item == "instructor_num":
+                relations2 = Instructor_Student.objects.filter(xh = stu_mes.get("xh"))
                 if len(relations2)==0:
                     return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '该学生不存在'},json_dumps_params={'ensure_ascii': False})
                 elif len(relations2)>1:
