@@ -1,3 +1,5 @@
+import datetime
+
 from django.shortcuts import render
 
 from Utils.wrappers import permitted_methods
@@ -58,35 +60,33 @@ def student_change(request):
         return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '该学生不存在'}, json_dumps_params={'ensure_ascii': False})
     elif len(relations) >1 :
         return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '存在多个相同学号的学生'},json_dumps_params={'ensure_ascii': False})
-    stu = relations[0]
     for item in stu_mes.keys():
         if item == "name":
-            stu.xm = stu_mes.get(item)
+            relations[0].xm = stu_mes.get(item)
         elif item == "xq":
-            stu.xq = stu_mes.get(item)
+            relations[0].xq = stu_mes.get(item)
         elif item == "sfzx":
-            stu.sfzx = stu_mes.get(item)
+            relations[0].sfzx = stu_mes.get(item)
         elif item == "cc":
-            stu.cc = stu_mes.get(item)
+            relations[0].cc = stu_mes.get(item)
         elif item == "glyx":
-            stu.glyx = stu_mes.get(item)
+            relations[0].glyx = stu_mes.get(item)
         elif item == "instructor_name" or "instructor_num":
+            relations2 = Instructor_Student.objects.filter(xh = stu_mes.get("xh"))
             if item == "instructor_name":
-                relations2 = Instructor_Student.objects.filter(xh = stu_mes.get("xh"))
                 if len(relations2)==0:
                     return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '该学生不存在'},json_dumps_params={'ensure_ascii': False})
                 elif len(relations2)>1:
                     return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '存在多个相同学号的学生'},json_dumps_params={'ensure_ascii': False})
                 else:
-                    stuin = relations2[0]
-                    stuin.xm = stu_mes.get(item)
-            elif  item == "instructor_num":
-                relations2 = Instructor_Student.objects.filter(xh = stu_mes.get("xh"))
+                    relations2[0].xm = stu_mes.get(item)
+            elif item == "instructor_num":
                 if len(relations2)==0:
                     return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '该学生不存在'},json_dumps_params={'ensure_ascii': False})
                 elif len(relations2)>1:
                     return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '存在多个相同学号的学生'},json_dumps_params={'ensure_ascii': False})
                 else:
-                    stuin = relations2[0]
-                    stuin.zgh = stu_mes.get(item)
+                    relations2[0].zgh = stu_mes.get(item)
+                    relations2[0].save()
+    relations[0].save()
     return JsonResponse(data={'message': 'ok'}, json_dumps_params={'ensure_ascii': False})
