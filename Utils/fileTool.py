@@ -1,7 +1,7 @@
 import xlrd
 from django import forms
 from django.http import HttpResponseRedirect, JsonResponse
-from Utils.tools import request_body_serialze_file
+from Utils.tools import request_body_serialize_file
 from http import HTTPStatus
 
 #上传文件过程中用到的工具类
