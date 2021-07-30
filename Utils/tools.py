@@ -21,14 +21,14 @@ def paginator2dict(page, fields=[]):
     return result
 
 
-def request_body_serialze(request):
+def request_body_serialize(request):
     querydict = json.loads(request.body.decode("utf-8"))
     return querydict
 
-def request_body_serialze2(request):
+def request_body_serialize_file(request):
     tmp = json.loads(request.body)
     return tmp.get("file")
 
-def request_body_serialize3(request):
+def request_body_serialize_init(request):
     return json.loads(request.body)
 
