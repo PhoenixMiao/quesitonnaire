@@ -9,7 +9,7 @@ from django.core import serializers
 from Utils.tools import paginator2dict
 from Utils.midd import errMsg
 from http import HTTPStatus
-from Utils.tools import request_body_serialize3
+from Utils.tools import request_body_serialize_init
 from .models import DepartAdmin
 
 
@@ -33,28 +33,26 @@ def student(request):
 
 @permitted_methods(["POST"])
 def student_import(request):
-    stu_mes = request_body_serialize3(request)
+    stu_mes = request_body_serialize_init(request)
     userId = '20130053'
     userName = 'Tang'
-    relations = Instructor_Student.objects.filter(zgh=userId)
-    xhs = [ele.xh for ele in relations]
-    if xhs.count(stu_mes.get("xh"))>0 :
-        return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '该学生已存在'}, json_dumps_params={'ensure_ascii': False})
     relations2 = Student.objects.filter(xh=stu_mes.get("xh"))
     if len(relations2) >0 :
         return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '该学生已存在'},json_dumps_params={'ensure_ascii': False})
+    if stu_mes.get("xh")==None or stu_mes.get("name")==None or stu_mes.get("xq")==None or stu_mes.get("sfzx")==None or stu_mes.get("cc")==None or stu_mes.get("glyx")==None or stu_mes.get("instructor_name")==None or stu_mes.get("instructor_num")==None:
+        return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '参数不全，字段不齐'},json_dumps_params={'ensure_ascii': False})
     Student.objects.create(xh=stu_mes.get("xh"),xm=stu_mes.get("name"),xq=stu_mes.get("xq"),sfzx=stu_mes.get("sfzx"),sfzj=True,
                            cc=stu_mes.get("cc"),glyx=stu_mes.get("glyx"),sfdr=True,sftb=False)
     Instructor_Student.objects.create(zgh=stu_mes.get("instructor_num"),xm=stu_mes.get("instructor_name"),xh=stu_mes.get("xh"))
     relations3 = DepartAdmin.objects.filter(zgh=stu_mes.get("instructor_num"))
     if(len(relations3)==0):
-        DepartAdmin.objects.create(zgh=stu_mes.get("instructor_num"),xm=stu_mes.get("instructor_name"),)
+        return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '该辅导员不存在'},json_dumps_params={'ensure_ascii': False})
     return JsonResponse(data={'message': 'ok'}, json_dumps_params={'ensure_ascii': False})
 
 
 @permitted_methods(["POST"])
 def student_change(request):
-    stu_mes = request_body_serialize3(request)
+    stu_mes = request_body_serialize_init(request)
     relations = Student.objects.filter(xh=stu_mes.get("xh"))
     if len(relations) == 0 :
         return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '该学生不存在'}, json_dumps_params={'ensure_ascii': False})

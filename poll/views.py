@@ -3,7 +3,7 @@ from django.http import JsonResponse
 from http import HTTPStatus
 from django.forms.models import model_to_dict
 from Utils.wrappers import permitted_methods
-from Utils.tools import request_body_serialze,request_body_serialize3
+from Utils.tools import request_body_serialize,request_body_serialize_init
 from django.core.paginator import Paginator,EmptyPage
 from student.models import Student
 from Utils.tools import paginator2dict
@@ -64,7 +64,7 @@ def whitelist(request, pollId):
 
 @permitted_methods(["DELETE"])
 def whitelist_delete(request, pollId):
-    vars = request_body_serialze(request)
+    vars = request_body_serialize(request)
     if "xh" not in vars.keys():
         return JsonResponse(status=HTTPStatus.NOT_ACCEPTABLE, data={'error': '缺少参数'},
                             json_dumps_params={'ensure_ascii': False})
@@ -111,7 +111,7 @@ def blacklist(request, pollId):
 
 @permitted_methods(["DELETE"])
 def blacklist_delete(request, pollId):
-    vars = request_body_serialze(request)
+    vars = request_body_serialize(request)
     if "xh" not in vars.keys():
         return JsonResponse(status=HTTPStatus.NOT_ACCEPTABLE, data={'error': '缺少参数'},
                             json_dumps_params={'ensure_ascii': False})
@@ -140,7 +140,7 @@ def blacklist_import(request, pollId):
 
 @permitted_methods(["POST"])
 def poll_create(request):
-    body_list = request_body_serialize3(request)
+    body_list = request_body_serialize_init(request)
     status = int(body_list.get("status"))
     oneoff = int(body_list.get("oneoff"))
     title = body_list.get("title")
