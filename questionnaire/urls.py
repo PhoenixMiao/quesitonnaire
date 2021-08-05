@@ -35,4 +35,7 @@ urlpatterns = [
     url(r'^blacklist_import/(.+)$', poll_views.blacklist_import),
     url(r'^poll_create/', poll_views.poll_create),
     url(r'^poll_change_status/(.+)$',poll_views.poll_change_status),
+    url(r'^record_add/',poll_views.record_add),
+    url(r'^record/(.+)$',poll_views.meta),
+    url(r'^records/(.+)$',poll_views.records),
 ]

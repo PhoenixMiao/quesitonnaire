@@ -1,4 +1,4 @@
-from poll.models import Questionnaire, Whitelist, Blacklist
+from poll.models import Questionnaire, Whitelist, Blacklist,Record
 from django.http import JsonResponse
 from http import HTTPStatus
 from django.forms.models import model_to_dict
@@ -175,3 +175,75 @@ def poll_change_status(request,pollId):
 
 
 
+@permitted_methods(["POST"])
+def record_add(request):
+    body_list = request_body_serialize_init(request)
+    xh = body_list.get('xh')
+    questionnaire_id = body_list.get('questionnaireId')
+    sub_body_list = list(body_list.values())[list(body_list.keys()).index("v1"):]
+    size = len(sub_body_list)
+    for i in range(size+1,21):
+        sub_body_list.append(None)
+    Record.objects.create(xh=xh, questionnaireId=questionnaire_id,
+                                 v1=sub_body_list[0], v2=sub_body_list[1], v3=sub_body_list[2], v4=sub_body_list[3],
+                                 v5=sub_body_list[4], v6=sub_body_list[5], v7=sub_body_list[6], v8=sub_body_list[7],
+                                 v9=sub_body_list[8], v10=sub_body_list[9], v11=sub_body_list[10],
+                                 v12=sub_body_list[11],
+                                 v13=sub_body_list[12], v14=sub_body_list[13], v15=sub_body_list[14],
+                                 v16=sub_body_list[15],
+                                 v17=sub_body_list[16], v18=sub_body_list[17], v19=sub_body_list[18],
+                                 v20=sub_body_list[19])
+    return JsonResponse(data={'message': 'ok'}, json_dumps_params={'ensure_ascii': False})
+
+
+
+@permitted_methods(["GET"])
+def meta(request,recordId):
+    records = Record.objects.filter(id=recordId)
+    if len(records) == 0 :
+        return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '没有该记录（未填写问卷）'},
+                            json_dumps_params={'ensure_ascii': False})
+    rec = records[0]
+    stu = Student.objects.filter(xh=rec.xh)
+    if len(stu)==0:
+        return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '没有该学生'},
+                            json_dumps_params={'ensure_ascii': False})
+    que = model_to_dict(Questionnaire.objects.get(id=rec.questionnaireId))
+    if len(que)==0:
+        return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '没有该问卷'},
+                            json_dumps_params={'ensure_ascii': False})
+    fields = ["id","xh","questionnaireId","createTime","updateTime"]
+    keys = ["id","xh","questionnaireId"]
+    for i in range(1, 21):
+        tmp = str(i)
+        if getattr(rec, "v" + tmp) is not None:
+            keys.append(que.get("k" + tmp))
+            fields.append("v" + tmp)
+    tmp = model_to_dict(rec,fields=fields).values()
+    mod = dict(zip(keys,tmp))
+    ret = {'message': 'ok','data': mod}
+    return JsonResponse(data=ret, json_dumps_params={'ensure_ascii': False})
+
+
+@permitted_methods(["GET"])
+def records(request,questionnaireId):
+    page_num = request.GET.get('p', 1)
+    length = request.GET.get('l', 5)
+    rec = Record.objects.filter(questionnaireId=questionnaireId)
+    body_list = request_body_serialize_init(request)
+    for item in body_list.keys():
+        if item == 'xh' :
+            rec = Record.objects.filter(questionnaireId=questionnaireId,xh=body_list.get('xh'))
+        elif item == 'name':
+            for ele in rec:
+                student = Student.objects.filter(xh=ele.xh)
+                if student.get('name') != body_list.get('name'):
+                    rec.remove(ele)
+    paginator = Paginator(records, length)
+    try:
+        paginator_page = paginator.page(page_num)
+    except EmptyPage:
+        return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '没有该页面'}, json_dumps_params={'ensure_ascii': False})
+    ret = {'message': 'ok',
+           'data': paginator2dict(paginator_page, ["id", "xh", "questionnaireId", "createTime", "updateTime"])}
+    return JsonResponse(data=ret, json_dumps_params={'ensure_ascii': False})
