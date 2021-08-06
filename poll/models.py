@@ -35,6 +35,7 @@ class Questionnaire(models.Model):
 
 class Record(models.Model):
     xh = models.CharField(max_length=30, default="", null=False)  # 填写者学号
+    questionnaireId = models.CharField(max_length=30,default="",null=False) #问卷id
     createTime = models.DateTimeField(auto_now_add=True)
     updateTime = models.DateTimeField(auto_now=True)
     v1 = models.CharField(max_length=50, null=True)
