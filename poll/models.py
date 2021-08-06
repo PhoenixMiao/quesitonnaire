@@ -1,5 +1,6 @@
 from django.db import models
 
+
 class Questionnaire(models.Model):
     status = models.SmallIntegerField(default=0, null=True)  # {0:草稿 1:发布中 2:暂停发布 -1:已归档}
     oneoff = models.BooleanField(default=False, null=True)  # {true: 一次性问卷，不能修改，可以多次填写 false: 一人一份的问卷，只能在原内容上修改}
@@ -35,7 +36,7 @@ class Questionnaire(models.Model):
 
 class Record(models.Model):
     xh = models.CharField(max_length=30, default="", null=False)  # 填写者学号
-    questionnaireId = models.CharField(max_length=30,default="",null=False) #问卷id
+    questionnaireId = models.IntegerField(max_length=50, default="", null=False) #问卷id
     createTime = models.DateTimeField(auto_now_add=True)
     updateTime = models.DateTimeField(auto_now=True)
     v1 = models.CharField(max_length=50, null=True)
