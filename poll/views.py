@@ -160,7 +160,7 @@ def poll_create(request):
 
 
 @permitted_methods(["POST"])
-def poll_change_status(request,pollId):
+def poll_activate(request,pollId):
     questionnaires = Questionnaire.objects.filter(id=pollId)
     if len(questionnaires) == 0:
         return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '没有该问卷'},
@@ -168,11 +168,38 @@ def poll_change_status(request,pollId):
     else:
         questionnaire = questionnaires[0];
         if questionnaire.status == 0 or questionnaire.status == 2:
-           questionnaire.status = 1
-        elif questionnaire.status == 1 :
-            questionnaire.status = 2
+           questionnaires[0].status = 1
+        elif questionnaire.status == 1:
+            return JsonResponse(status=HTTPStatus.NOT_ACCEPTABLE, data={'error': '该问卷已经在发布状态'},
+                            json_dumps_params={'ensure_ascii': False})
+        elif questionnaire.status == -1:
+            return JsonResponse(status=HTTPStatus.NOT_ACCEPTABLE, data={'error': '该问卷已归档'},
+                            json_dumps_params={'ensure_ascii': False})
+        questionnaires[0].save()
         return JsonResponse(data={'message': 'ok'}, json_dumps_params={'ensure_ascii': False})
 
+
+@permitted_methods(["POST"])
+def poll_pause(request,pollId):
+    questionnaires = Questionnaire.objects.filter(id=pollId)
+    if len(questionnaires) == 0:
+        return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '没有该问卷'},
+                            json_dumps_params={'ensure_ascii': False})
+    else:
+        questionnaire = questionnaires[0];
+        if questionnaire.status == 1:
+           questionnaires[0].status = 2
+        elif questionnaire.status == 2:
+            return JsonResponse(status=HTTPStatus.NOT_ACCEPTABLE, data={'error': '该问卷已经暂停发布'},
+                            json_dumps_params={'ensure_ascii': False})
+        elif questionnaire.status == 0:
+            return JsonResponse(status=HTTPStatus.NOT_ACCEPTABLE, data={'error': '该问卷仍在草稿状态'},
+                            json_dumps_params={'ensure_ascii': False})
+        elif questionnaire.status == -1:
+            return JsonResponse(status=HTTPStatus.NOT_ACCEPTABLE, data={'error': '该问卷已归档'},
+                            json_dumps_params={'ensure_ascii': False})
+        questionnaires[0].save()
+        return JsonResponse(data={'message': 'ok'}, json_dumps_params={'ensure_ascii': False})
 
 
 @permitted_methods(["POST"])
@@ -204,14 +231,6 @@ def meta(request,recordId):
         return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '没有该记录（未填写问卷）'},
                             json_dumps_params={'ensure_ascii': False})
     rec = records[0]
-    stu = Student.objects.filter(xh=rec.xh)
-    if len(stu)==0:
-        return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '没有该学生'},
-                            json_dumps_params={'ensure_ascii': False})
-    que = model_to_dict(Questionnaire.objects.get(id=rec.questionnaireId))
-    if len(que)==0:
-        return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '没有该问卷'},
-                            json_dumps_params={'ensure_ascii': False})
     fields = ["id","xh","questionnaireId","createTime","updateTime"]
     keys = ["id","xh","questionnaireId"]
     for i in range(1, 21):
@@ -239,7 +258,7 @@ def records(request,questionnaireId):
                 student = Student.objects.filter(xh=ele.xh)
                 if student.get('name') != body_list.get('name'):
                     rec.remove(ele)
-    paginator = Paginator(records, length)
+    paginator = Paginator(rec, length)
     try:
         paginator_page = paginator.page(page_num)
     except EmptyPage:
