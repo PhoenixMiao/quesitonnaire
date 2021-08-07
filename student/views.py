@@ -43,12 +43,13 @@ def student_import(request):
         return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '该学生已存在'},json_dumps_params={'ensure_ascii': False})
     if stu_mes.get("xh")==None or stu_mes.get("name")==None or stu_mes.get("xq")==None or stu_mes.get("sfzx")==None or stu_mes.get("cc")==None or stu_mes.get("glyx")==None or stu_mes.get("instructor_name")==None or stu_mes.get("instructor_num")==None:
         return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '参数不全，字段不齐'},json_dumps_params={'ensure_ascii': False})
+    relations3 = DepartAdmin.objects.filter(zgh=stu_mes.get("instructor_num"))
+    if (len(relations3) == 0):
+        return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '该辅导员不存在'},
+                            json_dumps_params={'ensure_ascii': False})
     Student.objects.create(xh=stu_mes.get("xh"),xm=stu_mes.get("name"),xq=stu_mes.get("xq"),sfzx=stu_mes.get("sfzx"),sfzj=True,
                            cc=stu_mes.get("cc"),glyx=stu_mes.get("glyx"),sfdr=True,sftb=False)
     Instructor_Student.objects.create(zgh=stu_mes.get("instructor_num"),xm=stu_mes.get("instructor_name"),xh=stu_mes.get("xh"))
-    relations3 = DepartAdmin.objects.filter(zgh=stu_mes.get("instructor_num"))
-    if(len(relations3)==0):
-        return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '该辅导员不存在'},json_dumps_params={'ensure_ascii': False})
     return JsonResponse(data={'message': 'ok'}, json_dumps_params={'ensure_ascii': False})
 
 
