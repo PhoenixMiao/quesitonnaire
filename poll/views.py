@@ -1,4 +1,4 @@
-from poll.models import Questionnaire, Whitelist, Blacklist,Record
+from poll.models import Questionnaire, Whitelist, Blacklist,Record,HistoryRecord
 from django.http import JsonResponse
 from http import HTTPStatus
 from django.forms.models import model_to_dict
@@ -166,7 +166,7 @@ def poll_activate(request,pollId):
         return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '没有该问卷'},
                             json_dumps_params={'ensure_ascii': False})
     else:
-        questionnaire = questionnaires[0];
+        questionnaire = questionnaires[0]
         if questionnaire.status == 0 or questionnaire.status == 2:
            questionnaires[0].status = 1
         elif questionnaire.status == 1:
@@ -186,7 +186,7 @@ def poll_pause(request,pollId):
         return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '没有该问卷'},
                             json_dumps_params={'ensure_ascii': False})
     else:
-        questionnaire = questionnaires[0];
+        questionnaire = questionnaires[0]
         if questionnaire.status == 1:
            questionnaires[0].status = 2
         elif questionnaire.status == 2:
@@ -207,6 +207,24 @@ def record_add(request):
     body_list = request_body_serialize_init(request)
     xh = body_list.get('xh')
     questionnaire_id = body_list.get('questionnaireId')
+    questionnaires = Questionnaire.objects.filter(id=questionnaire_id)
+    questionnaire = Questionnaire.objects.get(id=questionnaire_id)
+    if len(questionnaires) == 0:
+        return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '没有该问卷'},
+                            json_dumps_params={'ensure_ascii': False})
+    stu = Student.objects.filter(xh=xh)
+    if len(stu)==0:
+        return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '没有该学生'},
+                            json_dumps_params={'ensure_ascii': False})
+    questionnaire_dic = model_to_dict(questionnaire)
+    if questionnaire_dic.get("status") != 1:
+        return JsonResponse(status=HTTPStatus.NOT_ACCEPTABLE, data={'error': '该问卷并不在发布状态'},
+                            json_dumps_params={'ensure_ascii': False})
+    recorded = Record.objects.filter(questionnaireId=questionnaire_id,xh=xh)
+    if len(recorded) != 0:
+        if questionnaire_dic.get("oneoff") == 0:
+            return JsonResponse(status=HTTPStatus.NOT_ACCEPTABLE, data={'error': '该问卷一人一份，只能修改单人记录'},
+                                json_dumps_params={'ensure_ascii': False})
     sub_body_list = list(body_list.values())[list(body_list.keys()).index("v1"):]
     size = len(sub_body_list)
     for i in range(size+1,21):
@@ -222,15 +240,36 @@ def record_add(request):
                                  v20=sub_body_list[19])
     return JsonResponse(data={'message': 'ok'}, json_dumps_params={'ensure_ascii': False})
 
+@permitted_methods(["POST"])
+def record_change(request):
+    body_list = request_body_serialize_init(request)
+    xh = body_list.get('xh')
+    questionnaire_id = body_list.get('questionnaireId')
+    recs = Record.objects.filter(xh=xh,questionnaireId=questionnaire_id)
+    record = Record.objects.get(xh=xh,questionnaireId=questionnaire_id)
+    if len(recs) == 0:
+        return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '没有该记录（未填写问卷）'},
+                            json_dumps_params={'ensure_ascii': False})
+    questionnaire_dic = model_to_dict(Questionnaire.objects.get(id=questionnaire_id))
+    if questionnaire_dic.get("oneoff") == 1:
+        return JsonResponse(status=HTTPStatus.NOT_ACCEPTABLE, data={'error': '该问卷是一次性问卷，不能修改记录'},
+                            json_dumps_params={'ensure_ascii': False})
+    for i in range(1, 21):
+        if getattr(body_list.keys(), "v" + str(i)) is not None:
+            Record.objects.filter(xh=xh,questionnaireId=questionnaire_id).update(ele=body_list.get(ele))
+    return JsonResponse(data={'message': 'ok'}, json_dumps_params={'ensure_ascii': False})
+
 
 
 @permitted_methods(["GET"])
-def meta(request,recordId):
-    records = Record.objects.filter(id=recordId)
-    if len(records) == 0 :
+def record_meta(request,recordId):
+    record = Record.objects.filter(id=recordId)
+    if len(record) == 0 :
         return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '没有该记录（未填写问卷）'},
                             json_dumps_params={'ensure_ascii': False})
-    rec = records[0]
+    rec = record[0]
+    rec_use = model_to_dict(rec)
+    que = model_to_dict(Questionnaire.objects.get(id=rec_use.get("questionnaireId")))
     fields = ["id","xh","questionnaireId","createTime","updateTime"]
     keys = ["id","xh","questionnaireId"]
     for i in range(1, 21):
@@ -266,3 +305,67 @@ def records(request,questionnaireId):
     ret = {'message': 'ok',
            'data': paginator2dict(paginator_page, ["id", "xh", "questionnaireId", "createTime", "updateTime"])}
     return JsonResponse(data=ret, json_dumps_params={'ensure_ascii': False})
+
+
+@permitted_methods(["GET"])
+def history_meta(request,recordId):
+    record = HistoryRecord.objects.filter(id=recordId)
+    if len(record) == 0 :
+        return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '没有该归档记录'},
+                            json_dumps_params={'ensure_ascii': False})
+    rec = record[0]
+    rec_use = model_to_dict(rec)
+    que = model_to_dict(Questionnaire.objects.get(id=rec_use.get("questionnaireId")))
+    fields = ["id","xh","questionnaireId","createTime","updateTime"]
+    keys = ["id","xh","questionnaireId"]
+    for i in range(1, 21):
+        tmp = str(i)
+        if getattr(rec, "v" + tmp) is not None:
+            keys.append(que.get("k" + tmp))
+            fields.append("v" + tmp)
+    tmp = model_to_dict(rec,fields=fields).values()
+    mod = dict(zip(keys,tmp))
+    ret = {'message': 'ok','data': mod}
+    return JsonResponse(data=ret, json_dumps_params={'ensure_ascii': False})
+
+
+@permitted_methods(["GET"])
+def history_records(request,questionnaireId):
+    page_num = request.GET.get('p', 1)
+    length = request.GET.get('l', 5)
+    rec = HistoryRecord.objects.filter(questionnaireId=questionnaireId)
+    body_list = request_body_serialize_init(request)
+    for item in body_list.keys():
+        if item == 'xh' :
+            rec = HistoryRecord.objects.filter(questionnaireId=questionnaireId,xh=body_list.get('xh'))
+        elif item == 'name':
+            for ele in rec:
+                student = Student.objects.filter(xh=ele.xh)
+                if student.get('name') != body_list.get('name'):
+                    rec.remove(ele)
+    paginator = Paginator(rec, length)
+    try:
+        paginator_page = paginator.page(page_num)
+    except EmptyPage:
+        return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '没有该页面'}, json_dumps_params={'ensure_ascii': False})
+    ret = {'message': 'ok',
+           'data': paginator2dict(paginator_page, ["id", "xh", "questionnaireId", "createTime", "updateTime"])}
+    return JsonResponse(data=ret, json_dumps_params={'ensure_ascii': False})
+
+
+@permitted_methods(["POST"])
+def file(request,questionnaireId):
+    questionnaires = Questionnaire.objects.filter(id=questionnaireId)
+    questionnaire = questionnaires[0]
+    if questionnaire.status == 1 or questionnaire.status == 2:
+        Questionnaire.objects.filter(id=questionnaireId).update(status=-1)
+    elif questionnaire.status == 0:
+        return JsonResponse(status=HTTPStatus.NOT_ACCEPTABLE, data={'error': '该问卷仍在草稿状态'},
+                            json_dumps_params={'ensure_ascii': False})
+    elif questionnaire.status == -1:
+        return JsonResponse(status=HTTPStatus.NOT_ACCEPTABLE, data={'error': '该问卷已归档'},
+                            json_dumps_params={'ensure_ascii': False})
+    recs = Record.objects.filter(questionnaireId=questionnaireId)
+    HistoryRecord.objects.bulk_create(recs)
+    Record.objects.filter(questionnaireId=questionnaireId).delete()
+    return JsonResponse(data={'message': 'ok'}, json_dumps_params={'ensure_ascii': False})
