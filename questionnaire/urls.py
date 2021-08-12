@@ -37,6 +37,10 @@ urlpatterns = [
     url(r'^poll_activate/(.+)$',poll_views.poll_activate),
     url(r'^poll_pause/(.+)$',poll_views.poll_pause),
     url(r'^record_add/',poll_views.record_add),
-    url(r'^record/(.+)$',poll_views.meta),
+    url(r'^record_change/',poll_views.record_change),
+    url(r'^record/(.+)$',poll_views.record_meta),
     url(r'^records/(.+)$',poll_views.records),
+    url(r'^history_record/(.+)$',poll_views.history_meta),
+    url(r'^history_records/(.+)$',poll_views.history_records),
+    url(r'^poll_file/(.+)$',poll_views.file),
 ]
