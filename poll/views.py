@@ -254,9 +254,46 @@ def record_change(request):
     if questionnaire_dic.get("oneoff") == 1:
         return JsonResponse(status=HTTPStatus.NOT_ACCEPTABLE, data={'error': '该问卷是一次性问卷，不能修改记录'},
                             json_dumps_params={'ensure_ascii': False})
-    for i in range(1, 21):
-        if getattr(body_list.keys(), "v" + str(i)) is not None:
-            Record.objects.filter(xh=xh,questionnaireId=questionnaire_id).update(ele=body_list.get(ele))
+    if getattr(body_list.keys(), "v1") is not None:
+        Record.objects.filter(xh=xh,questionnaireId=questionnaire_id).update(v1=body_list.get("v1"))
+    if getattr(body_list.keys(), "v2") is not None:
+        Record.objects.filter(xh=xh, questionnaireId=questionnaire_id).update(v1=body_list.get("v2"))
+    if getattr(body_list.keys(), "v3") is not None:
+        Record.objects.filter(xh=xh, questionnaireId=questionnaire_id).update(v1=body_list.get("v3"))
+    if getattr(body_list.keys(), "v4") is not None:
+        Record.objects.filter(xh=xh, questionnaireId=questionnaire_id).update(v1=body_list.get("v4"))
+    if getattr(body_list.keys(), "v5") is not None:
+        Record.objects.filter(xh=xh, questionnaireId=questionnaire_id).update(v1=body_list.get("v5"))
+    if getattr(body_list.keys(), "v6") is not None:
+        Record.objects.filter(xh=xh, questionnaireId=questionnaire_id).update(v1=body_list.get("v6"))
+    if getattr(body_list.keys(), "v7") is not None:
+        Record.objects.filter(xh=xh, questionnaireId=questionnaire_id).update(v1=body_list.get("v7"))
+    if getattr(body_list.keys(), "v8") is not None:
+        Record.objects.filter(xh=xh, questionnaireId=questionnaire_id).update(v1=body_list.get("v8"))
+    if getattr(body_list.keys(), "v9") is not None:
+        Record.objects.filter(xh=xh, questionnaireId=questionnaire_id).update(v1=body_list.get("v9"))
+    if getattr(body_list.keys(), "v10") is not None:
+        Record.objects.filter(xh=xh, questionnaireId=questionnaire_id).update(v1=body_list.get("v10"))
+    if getattr(body_list.keys(), "v11") is not None:
+        Record.objects.filter(xh=xh, questionnaireId=questionnaire_id).update(v1=body_list.get("v11"))
+    if getattr(body_list.keys(), "v12") is not None:
+        Record.objects.filter(xh=xh, questionnaireId=questionnaire_id).update(v1=body_list.get("v12"))
+    if getattr(body_list.keys(), "v13") is not None:
+        Record.objects.filter(xh=xh, questionnaireId=questionnaire_id).update(v1=body_list.get("v13"))
+    if getattr(body_list.keys(), "v14") is not None:
+        Record.objects.filter(xh=xh, questionnaireId=questionnaire_id).update(v1=body_list.get("v14"))
+    if getattr(body_list.keys(), "v15") is not None:
+        Record.objects.filter(xh=xh, questionnaireId=questionnaire_id).update(v1=body_list.get("v15"))
+    if getattr(body_list.keys(), "v16") is not None:
+        Record.objects.filter(xh=xh, questionnaireId=questionnaire_id).update(v1=body_list.get("v16"))
+    if getattr(body_list.keys(), "v17") is not None:
+        Record.objects.filter(xh=xh, questionnaireId=questionnaire_id).update(v1=body_list.get("v17"))
+    if getattr(body_list.keys(), "v18") is not None:
+        Record.objects.filter(xh=xh, questionnaireId=questionnaire_id).update(v1=body_list.get("v18"))
+    if getattr(body_list.keys(), "v19") is not None:
+        Record.objects.filter(xh=xh, questionnaireId=questionnaire_id).update(v1=body_list.get("v19"))
+    if getattr(body_list.keys(), "v20") is not None:
+        Record.objects.filter(xh=xh, questionnaireId=questionnaire_id).update(v1=body_list.get("v20"))
     return JsonResponse(data={'message': 'ok'}, json_dumps_params={'ensure_ascii': False})
 
 
