@@ -254,46 +254,47 @@ def record_change(request):
     if questionnaire_dic.get("oneoff") == 1:
         return JsonResponse(status=HTTPStatus.NOT_ACCEPTABLE, data={'error': '该问卷是一次性问卷，不能修改记录'},
                             json_dumps_params={'ensure_ascii': False})
-    if getattr(body_list.keys(), "v1") is not None:
-        Record.objects.filter(xh=xh,questionnaireId=questionnaire_id).update(v1=body_list.get("v1"))
-    if getattr(body_list.keys(), "v2") is not None:
-        Record.objects.filter(xh=xh, questionnaireId=questionnaire_id).update(v1=body_list.get("v2"))
-    if getattr(body_list.keys(), "v3") is not None:
-        Record.objects.filter(xh=xh, questionnaireId=questionnaire_id).update(v1=body_list.get("v3"))
-    if getattr(body_list.keys(), "v4") is not None:
-        Record.objects.filter(xh=xh, questionnaireId=questionnaire_id).update(v1=body_list.get("v4"))
-    if getattr(body_list.keys(), "v5") is not None:
-        Record.objects.filter(xh=xh, questionnaireId=questionnaire_id).update(v1=body_list.get("v5"))
-    if getattr(body_list.keys(), "v6") is not None:
-        Record.objects.filter(xh=xh, questionnaireId=questionnaire_id).update(v1=body_list.get("v6"))
-    if getattr(body_list.keys(), "v7") is not None:
-        Record.objects.filter(xh=xh, questionnaireId=questionnaire_id).update(v1=body_list.get("v7"))
-    if getattr(body_list.keys(), "v8") is not None:
-        Record.objects.filter(xh=xh, questionnaireId=questionnaire_id).update(v1=body_list.get("v8"))
-    if getattr(body_list.keys(), "v9") is not None:
-        Record.objects.filter(xh=xh, questionnaireId=questionnaire_id).update(v1=body_list.get("v9"))
-    if getattr(body_list.keys(), "v10") is not None:
-        Record.objects.filter(xh=xh, questionnaireId=questionnaire_id).update(v1=body_list.get("v10"))
-    if getattr(body_list.keys(), "v11") is not None:
-        Record.objects.filter(xh=xh, questionnaireId=questionnaire_id).update(v1=body_list.get("v11"))
-    if getattr(body_list.keys(), "v12") is not None:
-        Record.objects.filter(xh=xh, questionnaireId=questionnaire_id).update(v1=body_list.get("v12"))
-    if getattr(body_list.keys(), "v13") is not None:
-        Record.objects.filter(xh=xh, questionnaireId=questionnaire_id).update(v1=body_list.get("v13"))
-    if getattr(body_list.keys(), "v14") is not None:
-        Record.objects.filter(xh=xh, questionnaireId=questionnaire_id).update(v1=body_list.get("v14"))
-    if getattr(body_list.keys(), "v15") is not None:
-        Record.objects.filter(xh=xh, questionnaireId=questionnaire_id).update(v1=body_list.get("v15"))
-    if getattr(body_list.keys(), "v16") is not None:
-        Record.objects.filter(xh=xh, questionnaireId=questionnaire_id).update(v1=body_list.get("v16"))
-    if getattr(body_list.keys(), "v17") is not None:
-        Record.objects.filter(xh=xh, questionnaireId=questionnaire_id).update(v1=body_list.get("v17"))
-    if getattr(body_list.keys(), "v18") is not None:
-        Record.objects.filter(xh=xh, questionnaireId=questionnaire_id).update(v1=body_list.get("v18"))
-    if getattr(body_list.keys(), "v19") is not None:
-        Record.objects.filter(xh=xh, questionnaireId=questionnaire_id).update(v1=body_list.get("v19"))
-    if getattr(body_list.keys(), "v20") is not None:
-        Record.objects.filter(xh=xh, questionnaireId=questionnaire_id).update(v1=body_list.get("v20"))
+    for item in body_list.keys():
+        if item == "v1":
+            Record.objects.filter(xh=xh, questionnaireId=questionnaire_id).update(v1=body_list.get("v1"))
+        if item == "v2":
+            Record.objects.filter(xh=xh, questionnaireId=questionnaire_id).update(v1=body_list.get("v2"))
+        if item == "v3":
+            Record.objects.filter(xh=xh, questionnaireId=questionnaire_id).update(v1=body_list.get("v3"))
+        if item == "v4":
+            Record.objects.filter(xh=xh, questionnaireId=questionnaire_id).update(v1=body_list.get("v4"))
+        if item == "v5":
+            Record.objects.filter(xh=xh, questionnaireId=questionnaire_id).update(v1=body_list.get("v5"))
+        if item == "v6":
+            Record.objects.filter(xh=xh, questionnaireId=questionnaire_id).update(v1=body_list.get("v6"))
+        if item == "v7":
+            Record.objects.filter(xh=xh, questionnaireId=questionnaire_id).update(v1=body_list.get("v7"))
+        if item == "v8":
+            Record.objects.filter(xh=xh, questionnaireId=questionnaire_id).update(v1=body_list.get("v8"))
+        if item == "v9":
+            Record.objects.filter(xh=xh, questionnaireId=questionnaire_id).update(v1=body_list.get("v9"))
+        if item == "v10":
+            Record.objects.filter(xh=xh, questionnaireId=questionnaire_id).update(v1=body_list.get("v10"))
+        if item == "v11":
+            Record.objects.filter(xh=xh, questionnaireId=questionnaire_id).update(v1=body_list.get("v11"))
+        if item == "v12":
+            Record.objects.filter(xh=xh, questionnaireId=questionnaire_id).update(v1=body_list.get("v12"))
+        if item == "v13":
+            Record.objects.filter(xh=xh, questionnaireId=questionnaire_id).update(v1=body_list.get("v13"))
+        if item == "v14":
+            Record.objects.filter(xh=xh, questionnaireId=questionnaire_id).update(v1=body_list.get("v14"))
+        if item == "v15":
+            Record.objects.filter(xh=xh, questionnaireId=questionnaire_id).update(v1=body_list.get("v15"))
+        if item == "v16":
+            Record.objects.filter(xh=xh, questionnaireId=questionnaire_id).update(v1=body_list.get("v16"))
+        if item == "v17":
+            Record.objects.filter(xh=xh, questionnaireId=questionnaire_id).update(v1=body_list.get("v17"))
+        if item == "v18":
+            Record.objects.filter(xh=xh, questionnaireId=questionnaire_id).update(v1=body_list.get("v18"))
+        if item == "v19":
+            Record.objects.filter(xh=xh, questionnaireId=questionnaire_id).update(v1=body_list.get("v19"))
+        if item == "v20":
+            Record.objects.filter(xh=xh, questionnaireId=questionnaire_id).update(v1=body_list.get("v20"))
     return JsonResponse(data={'message': 'ok'}, json_dumps_params={'ensure_ascii': False})
 
 
