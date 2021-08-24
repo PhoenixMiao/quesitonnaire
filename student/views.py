@@ -13,6 +13,7 @@ from Utils.midd import errMsg
 from http import HTTPStatus
 from Utils.tools import request_body_serialize_init
 from .models import DepartAdmin
+from django.forms.models import model_to_dict
 
 
 def student(request):
@@ -30,6 +31,47 @@ def student(request):
         return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '没有该页面'}, json_dumps_params={'ensure_ascii': False})
     ret = {'message': 'ok',
            'data': paginator2dict(paginator_page, ["xh", "xm", 'cc', 'glyx', 'glyxm', 'sftb', 'sfdr', 'sfzj', 'sfzx', 'xq', ])}
+    return JsonResponse(data=ret, json_dumps_params={'ensure_ascii': False})
+
+@permitted_methods(["GET"])
+def meta(request):
+    stu_mes = request_body_serialize_init(request)
+    userId = '20130053'
+    relations = Instructor_Student.objects.filter(zgh=userId)
+    xhs = [ele.xh for ele in relations]
+    students = Student.objects.filter(xh__in=xhs).order_by('xh')
+    for item in stu_mes.keys():
+        if item == "name":
+            students  = students.filter(name=stu_mes.get(item))
+        elif item == "xq":
+            students  = students.filter(xq=stu_mes.get(item))
+        elif item == "sfzx":
+            students  = students.filter(sfzx=stu_mes.get(item))
+        elif item == "cc":
+            students  = students.filter(cc=stu_mes.get(item))
+        elif item == "glyx":
+            students  = students.filter(glyx=stu_mes.get(item))
+        elif item == "instructor_name" or "instructor_num":
+            if item == "instructor_name":
+                relations2 = Instructor_Student.objects.filter(instructor_name=stu_mes.get(item))
+                if len(relations2)==0:
+                    return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '该学生不存在'},json_dumps_params={'ensure_ascii': False})
+                else:
+                    for stu in relations2:
+                        students  = students.filter(xh=stu.xh)
+            elif item == "instructor_num":
+                relations2 = Instructor_Student.objects.filter(instructor_num=stu_mes.get(item))
+                if len(relations2)==0:
+                    return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '该学生不存在'},json_dumps_params={'ensure_ascii': False})
+                else:
+                   for stu in relations2:
+                       students = students.filter(xh=stu.xh)
+    tmp = []
+    for each in students:
+        mod = model_to_dict(each)
+        tmp.append(mod)
+    ret = {'message': 'ok',
+           'data': tmp}
     return JsonResponse(data=ret, json_dumps_params={'ensure_ascii': False})
 
 
