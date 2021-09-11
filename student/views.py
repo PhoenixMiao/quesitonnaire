@@ -35,37 +35,45 @@ def student(request):
 
 @permitted_methods(["GET"])
 def meta(request):
-    stu_mes = request_body_serialize_init(request)
     userId = '20130053'
     relations = Instructor_Student.objects.filter(zgh=userId)
     xhs = [ele.xh for ele in relations]
     students = Student.objects.filter(xh__in=xhs).order_by('xh')
-    for item in stu_mes.keys():
-        if item == "name":
-            students  = students.filter(name=stu_mes.get(item))
-        elif item == "xq":
-            students  = students.filter(xq=stu_mes.get(item))
-        elif item == "sfzx":
-            students  = students.filter(sfzx=stu_mes.get(item))
-        elif item == "cc":
-            students  = students.filter(cc=stu_mes.get(item))
-        elif item == "glyx":
-            students  = students.filter(glyx=stu_mes.get(item))
-        elif item == "instructor_name" or "instructor_num":
-            if item == "instructor_name":
-                relations2 = Instructor_Student.objects.filter(instructor_name=stu_mes.get(item))
-                if len(relations2)==0:
-                    return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '该学生不存在'},json_dumps_params={'ensure_ascii': False})
-                else:
-                    for stu in relations2:
-                        students  = students.filter(xh=stu.xh)
-            elif item == "instructor_num":
-                relations2 = Instructor_Student.objects.filter(instructor_num=stu_mes.get(item))
-                if len(relations2)==0:
-                    return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '该学生不存在'},json_dumps_params={'ensure_ascii': False})
-                else:
-                   for stu in relations2:
-                       students = students.filter(xh=stu.xh)
+    xm = request.GET.get('name', 10)
+    xh = request.GET.get('xh',20)
+    xq = request.GET.get('xq', 10)
+    sfzx = request.GET.get('sfzx',5)
+    cc = request.GET.get('cc',10)
+    glyx = request.GET.get('glyx',10)
+    instructor_name = request.GET.get('instructor_name',10)
+    instructor_num = request.GET.get('instructor_num',20)
+    if xm:
+        students  = students.filter(xm=xm)
+    elif xh:
+        students = students.filter(xh=xh)
+    elif xq:
+        students  = students.filter(xq=xq)
+    elif sfzx:
+        students  = students.filter(sfzx=sfzx)
+    elif cc:
+        students  = students.filter(cc=cc)
+    elif glyx:
+            students  = students.filter(glyx=glyx)
+    elif instructor_name or instructor_num:
+        if instructor_name:
+            relations2 = Instructor_Student.objects.filter(instructor_name=instructor_name)
+            if len(relations2)==0:
+                return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '该学生不存在'},json_dumps_params={'ensure_ascii': False})
+            else:
+                for stu in relations2:
+                    students  = students.filter(xh=stu.xh)
+        elif item == "instructor_num":
+            relations2 = Instructor_Student.objects.filter(instructor_num=instructor_num)
+            if len(relations2)==0:
+                return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '该学生不存在'},json_dumps_params={'ensure_ascii': False})
+            else:
+                for stu in relations2:
+                    students = students.filter(xh=stu.xh)
     tmp = []
     for each in students:
         mod = model_to_dict(each)
