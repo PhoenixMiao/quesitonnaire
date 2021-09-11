@@ -325,16 +325,16 @@ def record_meta(request,recordId):
 def records(request,questionnaireId):
     page_num = request.GET.get('p', 1)
     length = request.GET.get('l', 5)
+    xh = request.GET.get('xh',20)
+    name = request.GET.get('name',10)
     rec = Record.objects.filter(questionnaireId=questionnaireId)
-    body_list = request_body_serialize_init(request)
-    for item in body_list.keys():
-        if item == 'xh' :
-            rec = Record.objects.filter(questionnaireId=questionnaireId,xh=body_list.get('xh'))
-        elif item == 'name':
-            for ele in rec:
-                student = Student.objects.filter(xh=ele.xh)
-                if student.get('name') != body_list.get('name'):
-                    rec.remove(ele)
+    if xh :
+        rec = Record.objects.filter(questionnaireId=questionnaireId,xh=xh)
+    elif name:
+        for ele in rec:
+            student = Student.objects.filter(xh=ele.xh)
+            if student.get('name') != name:
+                rec.remove(ele)
     paginator = Paginator(rec, length)
     try:
         paginator_page = paginator.page(page_num)
@@ -371,16 +371,16 @@ def history_meta(request,recordId):
 def history_records(request,questionnaireId):
     page_num = request.GET.get('p', 1)
     length = request.GET.get('l', 5)
+    xh = request.GET.get('xh',20)
+    name = request.GET.get('name',10)
     rec = HistoryRecord.objects.filter(questionnaireId=questionnaireId)
-    body_list = request_body_serialize_init(request)
-    for item in body_list.keys():
-        if item == 'xh' :
-            rec = HistoryRecord.objects.filter(questionnaireId=questionnaireId,xh=body_list.get('xh'))
-        elif item == 'name':
-            for ele in rec:
-                student = Student.objects.filter(xh=ele.xh)
-                if student.get('name') != body_list.get('name'):
-                    rec.remove(ele)
+    if xh :
+        rec = HistoryRecord.objects.filter(questionnaireId=questionnaireId,xh=xh)
+    elif name:
+        for ele in rec:
+            student = Student.objects.filter(xh=ele.xh)
+            if student.get('name') != name:
+                rec.remove(ele)
     paginator = Paginator(rec, length)
     try:
         paginator_page = paginator.page(page_num)
