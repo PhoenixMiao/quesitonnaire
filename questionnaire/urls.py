@@ -25,7 +25,7 @@ urlpatterns = [
     path('student/', student_views.student),
     path('student/import',student_views.student_import),
     path('student/change',student_views.student_change),
-    path(r'student/select/',student_views.meta),
+    path('student/select',student_views.meta),
     url(r'^polls/(.*)$', poll_views.polls),
     url(r'^poll/(.+)$', poll_views.meta),
     url(r'^whitelist/(.+)$', poll_views.whitelist),
