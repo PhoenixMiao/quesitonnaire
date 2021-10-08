@@ -22,10 +22,10 @@ from django.conf.urls import url
 
 urlpatterns = [
     # path('admin/', admin.site.urls),
-    path('student/', student_views.student),
-    path('student/import',student_views.student_import),
-    path('student/change',student_views.student_change),
-    path('student/select',student_views.meta),
+    path('students/', student_views.student),
+    path('student_import/',student_views.student_import),
+    path('student_change/',student_views.student_change),
+    path('student_select/',student_views.meta),
     url(r'^polls/(.*)$', poll_views.polls),
     url(r'^poll/(.+)$', poll_views.meta),
     url(r'^whitelist/(.+)$', poll_views.whitelist),
