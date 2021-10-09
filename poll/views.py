@@ -15,14 +15,23 @@ def polls(request, type):
     if type == '' or type is None:
         # 获取未归档的问卷列表
         questionnaires = Questionnaire.objects.exclude(status=-1)
-        questionnaires_dict = [model_to_dict(ele, fields=["id", "title", "creatorId", "oneoff", "status",
-                                                          "createTime", "updateTime"]) for ele in questionnaires]
+        questionnaires_dict = []
+        for ele in questionnaires:
+            my_ele = model_to_dict(ele, fields=["id", "title", "creatorId", "oneoff", "status"])
+            my_ele['createTime'] = ele.createTime.strftime("%Y-%m-%d %H:%M")
+            my_ele['updateTime'] = ele.updateTime.strftime("%Y-%m-%d %H:%M")
+            questionnaires_dict.append(my_ele)
         return JsonResponse(data={'message': 'ok', 'data': questionnaires_dict}, json_dumps_params={'ensure_ascii': False})
     elif type == 'archive':
         # 获取已归档的问卷列表：
         questionnaires = Questionnaire.objects.filter(status=-1)
-        questionnaires_dict = [model_to_dict(ele,fields=["id","title","creatorId","oneoff","status","createTime","updateTime"]) for ele in questionnaires]
-        return JsonResponse(data={"message":"ok", "data":questionnaires_dict}, json_dumps_params={'ensure_ascii':False})
+        questionnaires_dict = []
+        for ele in questionnaires:
+            my_ele = model_to_dict(ele, fields=["id", "title", "creatorId", "oneoff", "status"])
+            my_ele['createTime'] = ele.createTime.strftime("%Y-%m-%d %H:%M")
+            my_ele['updateTime'] = ele.updateTime.strftime("%Y-%m-%d %H:%M")
+            questionnaires_dict.append(my_ele)
+        return JsonResponse(data={"message": "ok", "data": questionnaires_dict}, json_dumps_params={'ensure_ascii': False})
     else:
         return JsonResponse(status=HTTPStatus.NOT_ACCEPTABLE, data={'error': '参数错误'},
                             json_dumps_params={'ensure_ascii': False})
