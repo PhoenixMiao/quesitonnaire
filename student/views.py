@@ -70,7 +70,7 @@ def meta(request):
     for each in students:
         mod = model_to_dict(each)
         tmp.append(mod)
-    ret = {'message': 'ok',
+    ret = {'message': 'ok+select',
            'data': tmp}
     return JsonResponse(data=ret, json_dumps_params={'ensure_ascii': False})
 
