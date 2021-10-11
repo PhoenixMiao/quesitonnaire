@@ -20,6 +20,31 @@ def paginator2dict(page, fields=[]):
     result['list'] = eles
     return result
 
+def paginator3dict(page, fields=[]):
+    result = {
+        'list': [],
+        'count': page.paginator.count,
+        'page_num': page.paginator.num_pages,
+        'has_previous': page.has_previous(),
+        'has_next': page.has_next(),
+        'previous_page_num': page.previous_page_number() if page.has_previous() else 1,
+        'next_page_num': page.next_page_number() if page.has_next() else page.paginator.num_pages
+    }
+    eles = []
+    for ele in page:
+        my_ele = model_to_dict(ele,fields=["xh", "xm", 'cc', 'glyx', 'glyxm', 'sftb', 'sfdr', 'sfzj', 'sfzx', 'xq'])
+        if my_ele['sftb'] == True:
+            my_ele['sftb'] = '是'
+        if my_ele['sftb'] == False:
+            my_ele['sftb'] = '否'
+        if my_ele['sfdr'] == True:
+            my_ele['sfdr'] = '是'
+        if my_ele['sfdr'] == False:
+            my_ele['sfdr'] = '否'
+        eles.append(my_ele)
+    result['list'] = eles
+    return result
+
 
 def request_body_serialize(request):
     querydict = json.loads(request.body.decode("utf-8"))
