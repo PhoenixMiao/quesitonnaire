@@ -9,6 +9,7 @@ class Questionnaire(models.Model):
     creatorId = models.CharField(max_length=30, null=True)  # 学工号
     createTime = models.DateTimeField(auto_now_add=True)
     updateTime = models.DateTimeField(auto_now=True)
+    archiveTime = models.DateTimeField(null=True)
     k1 = models.CharField(max_length=50, null=True)
     k2 = models.CharField(max_length=50, null=True)
     k3 = models.CharField(max_length=50, null=True)
