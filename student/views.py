@@ -41,8 +41,10 @@ def meta(request):
     xhs = [ele.xh for ele in relations]
     students = Student.objects.filter(xh__in=xhs).order_by('xh')
     for item in stu_mes.keys():
-        if item == "name":
-            students  = students.filter(name=stu_mes.get(item))
+        if item == "xm":
+            students  = students.filter(xm=stu_mes.get(item))
+        elif item == "xh":
+            students = students.filter(xh=stu_mes.get(item))
         elif item == "xq":
             students  = students.filter(xq=stu_mes.get(item))
         elif item == "sfzx":
