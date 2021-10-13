@@ -8,6 +8,9 @@ from django.core.paginator import Paginator,EmptyPage
 from student.models import Student
 from Utils.tools import paginator2dict
 from Utils.fileTool import upload_file
+import xlwt
+import io
+from django.http import HttpResponse
 
 
 @permitted_methods(["GET"])
@@ -31,6 +34,8 @@ def polls(request, type):
             my_ele = model_to_dict(ele, fields=["id", "title", "creatorId", "oneoff", "status"])
             my_ele['createTime'] = ele.createTime.strftime("%Y-%m-%d %H:%M")
             my_ele['updateTime'] = ele.updateTime.strftime("%Y-%m-%d %H:%M")
+            rec = Record.objects.filter(questionnaireId=my_ele['id'])
+            my_ele['times'] = len(rec)
             questionnaires_dict.append(my_ele)
         return JsonResponse(data={"message": "ok", "data": questionnaires_dict}, json_dumps_params={'ensure_ascii': False})
     else:
@@ -417,3 +422,57 @@ def file(request,questionnaireId):
     HistoryRecord.objects.bulk_create(recs)
     Record.objects.filter(questionnaireId=questionnaireId).delete()
     return JsonResponse(data={'message': 'ok'}, json_dumps_params={'ensure_ascii': False})
+
+
+@permitted_methods(["POST"])
+def fileDown(request,questionnaireId):
+    questionnaires = Questionnaire.objects.get(id=questionnaireId)
+    records = Record.objects.filter(id=questionnaireId)
+    if questionnaires:
+        mes = model_to_dict(questionnaires,fields=['id','status','oneoff','title','scope','creatorId','createTime','updateTime','k1','k2','k3','k4','k5','k6','k7','k8','k9','k10','k11','k12','k13','k14','k15','k16','k17','k18','k19','k20'])
+        if mes.get('status') != -1 :
+            return JsonResponse(status=HTTPStatus.NOT_ACCEPTABLE, data={'error': '该问卷尚未归档'},
+                                json_dumps_params={'ensure_ascii': False})
+        med = xlwt.Workbook(encoding='utf-8', style_compression=0)
+        sheet = med.add_sheet(u'归档问卷', cell_overwrite_ok=True)
+        col = ("序号","学号", "创建时间", "更新时间", mes.get('k1'), mes.get('k2'), mes.get('k3'), mes.get('k4'), mes.get('k4'), mes.get('k5'), mes.get('k6'), mes.get('k7'), mes.get('k8'), mes.get('k9'), mes.get('k10'),
+               mes.get('k11'),mes.get('k12'),mes.get('k13'),mes.get('k14'),mes.get('k15'),mes.get('k16'),mes.get('k17'),mes.get('k18'),mes.get('k19'),mes.get('k20'))
+        for i in range(0, 24):
+            sheet.write(0, i, col[i])
+        row = 1
+        j = 1
+        for i in records:
+            sheet.write(row, 0, j)
+            sheet.write(row, 1, str(i.xh))
+            sheet.write(row, 2, str(i.createTime))
+            sheet.write(row, 3, str(i.updateTime))
+            sheet.write(row, 4, str(i.v1))
+            sheet.write(row, 5, str(i.v2))
+            sheet.write(row, 6, str(i.v3))
+            sheet.write(row, 7, str(i.v4))
+            sheet.write(row, 8, str(i.v5))
+            sheet.write(row, 9, str(i.v6))
+            sheet.write(row, 10, str(i.v7))
+            sheet.write(row, 11, str(i.v8))
+            sheet.write(row, 12, str(i.v9))
+            sheet.write(row, 13, str(i.v10))
+            sheet.write(row, 14, str(i.v11))
+            sheet.write(row, 15, str(i.v12))
+            sheet.write(row, 16, str(i.v13))
+            sheet.write(row, 17, str(i.v14))
+            sheet.write(row, 18, str(i.v15))
+            sheet.write(row, 19, str(i.v16))
+            sheet.write(row, 20, str(i.v17))
+            sheet.write(row, 21, str(i.v18))
+            sheet.write(row, 22, str(i.v19))
+            sheet.write(row, 23, str(i.v20))
+            row = row + 1
+            j = j + 1
+        med.save("归档问卷.xls")
+        sio = io.BytesIO()
+        med.save(sio)
+        sio.seek(0)
+        response = HttpResponse(sio.getvalue(), content_type='application/vnd.ms-excel')
+        response['Content-Disposition'] = 'attachment; filename=archivedquestionnaire.xls'
+        response.write(sio.getvalue())
+        return response

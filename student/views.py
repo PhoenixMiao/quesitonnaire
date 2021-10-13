@@ -8,7 +8,7 @@ from student.models import Instructor_Student
 from django.http import JsonResponse
 from django.core.paginator import Paginator, EmptyPage
 from django.core import serializers
-from Utils.tools import paginator2dict
+from Utils.tools import paginator2dict,paginator3dict
 from Utils.midd import errMsg
 from http import HTTPStatus
 from Utils.tools import request_body_serialize_init
@@ -30,7 +30,7 @@ def student(request):
     except EmptyPage:
         return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '没有该页面'}, json_dumps_params={'ensure_ascii': False})
     ret = {'message': 'ok',
-           'data': paginator2dict(paginator_page, ["xh", "xm", 'cc', 'glyx', 'glyxm', 'sftb', 'sfdr', 'sfzj', 'sfzx', 'xq', ])}
+           'data': paginator3dict(paginator_page, ["xh", "xm", 'cc', 'glyx', 'glyxm', 'sftb', 'sfdr', 'sfzj', 'sfzx', 'xq', ])}
     return JsonResponse(data=ret, json_dumps_params={'ensure_ascii': False})
 
 @permitted_methods(["POST"])
@@ -41,8 +41,10 @@ def meta(request):
     xhs = [ele.xh for ele in relations]
     students = Student.objects.filter(xh__in=xhs).order_by('xh')
     for item in stu_mes.keys():
-        if item == "name":
-            students  = students.filter(name=stu_mes.get(item))
+        if item == "xm":
+            students  = students.filter(xm=stu_mes.get(item))
+        elif item == "xh":
+            students = students.filter(xh=stu_mes.get(item))
         elif item == "xq":
             students  = students.filter(xq=stu_mes.get(item))
         elif item == "sfzx":
@@ -70,7 +72,7 @@ def meta(request):
     for each in students:
         mod = model_to_dict(each)
         tmp.append(mod)
-    ret = {'message': 'ok+select',
+    ret = {'message': 'ok',
            'data': tmp}
     return JsonResponse(data=ret, json_dumps_params={'ensure_ascii': False})
 
