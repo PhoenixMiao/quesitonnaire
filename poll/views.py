@@ -9,7 +9,7 @@ from student.models import Student
 from Utils.tools import paginator2dict
 from Utils.fileTool import upload_file
 import xlwt
-import io
+import io, csv, codecs
 from django.http import HttpResponse
 
 
@@ -120,7 +120,7 @@ def blacklist(request, pollId):
     except EmptyPage:
         return JsonResponse(status=HTTPStatus.NO_CONTENT,data = {"error":"没有该页面"},json_dumps_params={'ensure_ascii':False})
     ret = {'message': 'ok',
-           'data':paginator2dict(paginator_page,["xh","xm","glyx"])}
+           'data': paginator2dict(paginator_page, ["xh", "xm", "glyx"])}
     return JsonResponse(data=ret, json_dumps_params={'ensure_ascii': False})
 
 
@@ -147,9 +147,9 @@ def blacklist_import(request, pollId):
     else:
         xhs.remove("学号")
         for xh in xhs:
-            blacklist = Blacklist.objects.filter(questionnaireId=pollId,xh=xh)
-            if len(blacklist) == 0 :
-                Blacklist.objects.create(questionnaireId=pollId,xh=xh)
+            blacklist = Blacklist.objects.filter(questionnaireId=pollId, xh=xh)
+            if len(blacklist) == 0:
+                Blacklist.objects.create(questionnaireId=pollId, xh=xh)
         return JsonResponse(data={'message': 'ok'}, json_dumps_params={'ensure_ascii': False})
 
 
@@ -165,12 +165,12 @@ def poll_create(request):
     size = len(sub_body_list)
     for i in range(size+1,21):
         sub_body_list.append(None)
-    Questionnaire.objects.create(status=status,oneoff=oneoff,title=title,scope=scope,creatorId=creatorId,
-                                 k1=sub_body_list[0],k2=sub_body_list[1],k3=sub_body_list[2],k4=sub_body_list[3],
-                                 k5=sub_body_list[4],k6=sub_body_list[5],k7=sub_body_list[6],k8=sub_body_list[7],
-                                 k9=sub_body_list[8],k10=sub_body_list[9],k11=sub_body_list[10],k12=sub_body_list[11],
-                                 k13=sub_body_list[12],k14=sub_body_list[13],k15=sub_body_list[14],k16=sub_body_list[15],
-                                 k17=sub_body_list[16],k18=sub_body_list[17],k19=sub_body_list[18],k20=sub_body_list[19])
+    Questionnaire.objects.create(status=status, oneoff=oneoff,title=title, scope=scope, creatorId=creatorId,
+                                 k1=sub_body_list[0], k2=sub_body_list[1], k3=sub_body_list[2], k4=sub_body_list[3],
+                                 k5=sub_body_list[4], k6=sub_body_list[5], k7=sub_body_list[6], k8=sub_body_list[7],
+                                 k9=sub_body_list[8], k10=sub_body_list[9], k11=sub_body_list[10], k12=sub_body_list[11],
+                                 k13=sub_body_list[12], k14=sub_body_list[13], k15=sub_body_list[14], k16=sub_body_list[15],
+                                 k17=sub_body_list[16], k18=sub_body_list[17], k19=sub_body_list[18], k20=sub_body_list[19])
     return JsonResponse(data={'message': 'ok'}, json_dumps_params={'ensure_ascii': False})
 
 
@@ -422,6 +422,29 @@ def file(request,questionnaireId):
     HistoryRecord.objects.bulk_create(recs)
     Record.objects.filter(questionnaireId=questionnaireId).delete()
     return JsonResponse(data={'message': 'ok'}, json_dumps_params={'ensure_ascii': False})
+
+
+@permitted_methods(["GET"])
+def templateFiles(request, type):
+    if type == "whitelist":
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment;filename=whitelist.csv'
+        response.write(codecs.BOM_UTF8)
+        writer = csv.writer(response)
+        writer.writerow(["学号"])
+        writer.writerow(["10204xxxxx"])
+        return response
+    elif type == "blacklist":
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment;filename=blacklist.csv'
+        response.write(codecs.BOM_UTF8)
+        writer = csv.writer(response)
+        writer.writerow(["学号"])
+        writer.writerow(["10204xxxxx"])
+        return response
+    else:
+        return JsonResponse(status=HTTPStatus.NOT_ACCEPTABLE, data={'error': '参数错误'},
+                            json_dumps_params={'ensure_ascii': False})
 
 
 @permitted_methods(["POST"])

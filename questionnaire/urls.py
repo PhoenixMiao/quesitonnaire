@@ -45,4 +45,7 @@ urlpatterns = [
     url(r'^history_records/(.+)$',poll_views.history_records),
     url(r'^poll_file/(.+)$',poll_views.file),
     url(r'^poll_download/(.+)$',poll_views.fileDown),
+
+    url(r'^templates/(.+)$', poll_views.templateFiles),
+    url(r'^templates/(.+)$', poll_views.templateFiles),
 ]
