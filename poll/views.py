@@ -20,6 +20,7 @@ def polls(request, type):
             my_ele = model_to_dict(ele, fields=["id", "title", "creatorId", "oneoff", "status"])
             my_ele['createTime'] = ele.createTime.strftime("%Y-%m-%d %H:%M")
             my_ele['updateTime'] = ele.updateTime.strftime("%Y-%m-%d %H:%M")
+            my_ele['archiveTime'] = ele.updateTime.strftime("%Y-%m-%d %H:%M")
             questionnaires_dict.append(my_ele)
         return JsonResponse(data={'message': 'ok', 'data': questionnaires_dict}, json_dumps_params={'ensure_ascii': False})
     elif type == 'archive':
