@@ -20,7 +20,7 @@ def paginator2dict(page, fields=[]):
     result['list'] = eles
     return result
 
-def paginator3dict(page, fields=[]):
+def paginator3dict(page,fields=[]):
     result = {
         'list': [],
         'count': page.paginator.count,
@@ -41,7 +41,8 @@ def paginator3dict(page, fields=[]):
             my_ele['sfdr'] = '是'
         if my_ele['sfdr'] == False:
             my_ele['sfdr'] = '否'
-        eles.append(my_ele)
+        dict = {'xh':my_ele['xh'],'xm':my_ele['xm'],'glyx':my_ele['glyx'],'sfdr':my_ele['sfdr'],'sftb':my_ele['sftb']}
+        eles.append(dict)
     result['list'] = eles
     return result
 
