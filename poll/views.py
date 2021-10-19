@@ -346,7 +346,7 @@ def records(request,questionnaireId):
     body_list = request_body_serialize_init(request)
     for item in body_list.keys():
         if item == 'xh' :
-            rec = Record.objects.filter(questionnaireId=questionnaireId,xh=body_list.get('xh'))
+            rec = Record.objects.filter(questionnaireId=questionnaireId,xh__icontains=body_list.get('xh'))
         # elif item == 'name':
         #     for ele in rec:
         #         student = Student.objects.filter(xh=ele.xh)
