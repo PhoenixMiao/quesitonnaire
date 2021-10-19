@@ -34,7 +34,7 @@ def polls(request, type):
             my_ele = model_to_dict(ele, fields=["id", "title", "creatorId", "oneoff", "status"])
             my_ele['createTime'] = ele.createTime.strftime("%Y-%m-%d %H:%M")
             my_ele['updateTime'] = ele.updateTime.strftime("%Y-%m-%d %H:%M")
-            rec = Record.objects.filter(questionnaireId=my_ele['id'])
+            rec = HistoryRecord.objects.filter(questionnaireId=my_ele['id'])
             my_ele['times'] = len(rec)
             questionnaires_dict.append(my_ele)
         return JsonResponse(data={"message": "ok", "data": questionnaires_dict}, json_dumps_params={'ensure_ascii': False})
@@ -50,11 +50,13 @@ def meta(request, pollId):
         return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '没有该问卷'},
                             json_dumps_params={'ensure_ascii': False})
     questionnaire = questionnaires[0]
-    fields = ["status", "oneoff", "title", "scope", "creatorId", "createTime"]
+    fields = ["status", "oneoff", "title", "scope", "creatorId"]
     for i in range(1, 21):
         if getattr(questionnaire, "k" + str(i)) is not None:
             fields.append("k" + str(i))
     mod = model_to_dict(questionnaire, fields=fields)
+    mod['createTime'] = questionnaire.createTime.strftime("%Y-%m-%d %H:%M")
+    mod['updateTime'] = questionnaire.updateTime.strftime("%Y-%m-%d %H:%M")
     ret = {'message': 'ok',
            'data': mod}
     return JsonResponse(data=ret, json_dumps_params={'ensure_ascii': False})
@@ -323,7 +325,7 @@ def record_meta(request,recordId):
     rec = record[0]
     rec_use = model_to_dict(rec)
     que = model_to_dict(Questionnaire.objects.get(id=rec_use.get("questionnaireId")))
-    fields = ["id","xh","questionnaireId","createTime","updateTime"]
+    fields = ["id","xh","questionnaireId"]
     keys = ["id","xh","questionnaireId"]
     for i in range(1, 21):
         tmp = str(i)
@@ -345,18 +347,18 @@ def records(request,questionnaireId):
     for item in body_list.keys():
         if item == 'xh' :
             rec = Record.objects.filter(questionnaireId=questionnaireId,xh=body_list.get('xh'))
-        elif item == 'name':
-            for ele in rec:
-                student = Student.objects.filter(xh=ele.xh)
-                if student.get('name') != body_list.get('name'):
-                    rec.remove(ele)
+        # elif item == 'name':
+        #     for ele in rec:
+        #         student = Student.objects.filter(xh=ele.xh)
+        #         if student.get('name') != body_list.get('name'):
+        #             rec.remove(ele)
     paginator = Paginator(rec, length)
     try:
         paginator_page = paginator.page(page_num)
     except EmptyPage:
         return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '没有该页面'}, json_dumps_params={'ensure_ascii': False})
     ret = {'message': 'ok',
-           'data': paginator2dict(paginator_page, ["id", "xh", "questionnaireId", "createTime", "updateTime"])}
+           'data': paginator2dict(paginator_page, ["id", "xh", "questionnaireId","v1","v2","v3"])}
     return JsonResponse(data=ret, json_dumps_params={'ensure_ascii': False})
 
 

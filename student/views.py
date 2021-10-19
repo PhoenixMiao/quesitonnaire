@@ -15,65 +15,59 @@ from Utils.tools import request_body_serialize_init
 from .models import DepartAdmin
 from django.forms.models import model_to_dict
 
-
+@permitted_methods(["POST"])
 def student(request):
+    stu_mes = request_body_serialize_init(request)
+    userId = '20130053'
     page_num = request.GET.get('p', 1)
     length = request.GET.get('l', 5)
-    userId = '20130053'
 #    permission = '4'
     relations = Instructor_Student.objects.filter(zgh=userId)
     xhs = [ele.xh for ele in relations]
     students = Student.objects.filter(xh__in=xhs).order_by('xh')
+    for item in stu_mes.keys():
+        if item == "xm":
+            students  = students.filter(xm__icontains=stu_mes.get(item))
+        elif item == "xh":
+            students = students.filter(xh__icontains=stu_mes.get(item))
+        elif item == "xq":
+            students  = students.filter(xq__icontains=stu_mes.get(item))
+        elif item == "sfzx":
+            students  = students.filter(sfzx__icontains=stu_mes.get(item))
+        elif item == "cc":
+            students  = students.filter(cc__icontains=stu_mes.get(item))
+        elif item == "glyx":
+            students  = students.filter(glyx__icontains=stu_mes.get(item))
     paginator = Paginator(students, length)
     try:
         paginator_page = paginator.page(page_num)
     except EmptyPage:
         return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '没有该页面'}, json_dumps_params={'ensure_ascii': False})
     ret = {'message': 'ok',
-           'data': paginator3dict(paginator_page, ["xh", "xm", 'cc', 'glyx', 'glyxm', 'sftb', 'sfdr', 'sfzj', 'sfzx', 'xq', ])}
+           'data': paginator3dict(paginator_page, ["xh", "xm", 'glyx', 'glyxm', 'sftb', 'sfdr', 'sfzj', 'sfzx', 'xq', ])}
     return JsonResponse(data=ret, json_dumps_params={'ensure_ascii': False})
 
 @permitted_methods(["POST"])
 def meta(request):
     stu_mes = request_body_serialize_init(request)
-    userId = '20130053'
-    relations = Instructor_Student.objects.filter(zgh=userId)
-    xhs = [ele.xh for ele in relations]
-    students = Student.objects.filter(xh__in=xhs).order_by('xh')
-    for item in stu_mes.keys():
-        if item == "xm":
-            students  = students.filter(xm=stu_mes.get(item))
-        elif item == "xh":
-            students = students.filter(xh=stu_mes.get(item))
-        elif item == "xq":
-            students  = students.filter(xq=stu_mes.get(item))
-        elif item == "sfzx":
-            students  = students.filter(sfzx=stu_mes.get(item))
-        elif item == "cc":
-            students  = students.filter(cc=stu_mes.get(item))
-        elif item == "glyx":
-            students  = students.filter(glyx=stu_mes.get(item))
-        elif item == "instructor_name" or "instructor_num":
-            if item == "instructor_name":
-                relations2 = Instructor_Student.objects.filter(instructor_name=stu_mes.get(item))
-                if len(relations2)==0:
-                    return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '该学生不存在'},json_dumps_params={'ensure_ascii': False})
-                else:
-                    for stu in relations2:
-                        students  = students.filter(xh=stu.xh)
-            elif item == "instructor_num":
-                relations2 = Instructor_Student.objects.filter(instructor_num=stu_mes.get(item))
-                if len(relations2)==0:
-                    return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '该学生不存在'},json_dumps_params={'ensure_ascii': False})
-                else:
-                   for stu in relations2:
-                       students = students.filter(xh=stu.xh)
-    tmp = []
-    for each in students:
-        mod = model_to_dict(each)
-        tmp.append(mod)
+    student = Student.objects.get(xh=stu_mes['xh'])
+    mod = model_to_dict(student)
+    mod2 = model_to_dict(Instructor_Student.objects.get(xh=mod['xh']))
+    mod3 = model_to_dict(DepartAdmin.objects.get(glyx=mod.get('glyx')))
+    mod['instructor_zgh'] = mod2.get('zgh')
+    mod['instructor_xm'] = mod2.get('xm')
+    mod['depart_admin_zgh'] = mod3.get('zgh')
+    mod['depart_admin_xm'] = mod3.get('xm')
+    if mod['sftb'] == True:
+        mod['sftb'] = '是'
+    if mod['sftb'] == False:
+        mod['sftb'] = '否'
+    if mod['sfdr'] == True:
+        mod['sfdr'] = '是'
+    if mod['sfdr'] == False:
+        mod['sfdr'] = '否'
     ret = {'message': 'ok',
-           'data': tmp}
+           'data': mod}
     return JsonResponse(data=ret, json_dumps_params={'ensure_ascii': False})
 
 @permitted_methods(["POST"])
