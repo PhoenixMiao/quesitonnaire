@@ -23,7 +23,6 @@ def polls(request, type):
             my_ele = model_to_dict(ele, fields=["id", "title", "creatorId", "oneoff", "status"])
             my_ele['createTime'] = ele.createTime.strftime("%Y-%m-%d %H:%M")
             my_ele['updateTime'] = ele.updateTime.strftime("%Y-%m-%d %H:%M")
-            my_ele['archiveTime'] = ele.updateTime.strftime("%Y-%m-%d %H:%M")
             questionnaires_dict.append(my_ele)
         return JsonResponse(data={'message': 'ok', 'data': questionnaires_dict}, json_dumps_params={'ensure_ascii': False})
     elif type == 'archive':
@@ -34,6 +33,7 @@ def polls(request, type):
             my_ele = model_to_dict(ele, fields=["id", "title", "creatorId", "oneoff", "status"])
             my_ele['createTime'] = ele.createTime.strftime("%Y-%m-%d %H:%M")
             my_ele['updateTime'] = ele.updateTime.strftime("%Y-%m-%d %H:%M")
+            my_ele['archiveTime'] = ele.updateTime.strftime("%Y-%m-%d %H:%M")
             rec = HistoryRecord.objects.filter(questionnaireId=my_ele['id'])
             my_ele['times'] = len(rec)
             questionnaires_dict.append(my_ele)
@@ -371,7 +371,7 @@ def history_meta(request,recordId):
     rec = record[0]
     rec_use = model_to_dict(rec)
     que = model_to_dict(Questionnaire.objects.get(id=rec_use.get("questionnaireId")))
-    fields = ["id","xh","questionnaireId","createTime","updateTime"]
+    fields = ["id","xh","questionnaireId"]
     keys = ["id","xh","questionnaireId"]
     for i in range(1, 21):
         tmp = str(i)
@@ -388,23 +388,23 @@ def history_meta(request,recordId):
 def history_records(request,questionnaireId):
     page_num = request.GET.get('p', 1)
     length = request.GET.get('l', 5)
-    xh = request.GET.get('xh',20)
-    name = request.GET.get('name',10)
     rec = HistoryRecord.objects.filter(questionnaireId=questionnaireId)
-    if xh :
-        rec = HistoryRecord.objects.filter(questionnaireId=questionnaireId,xh=xh)
-    elif name:
-        for ele in rec:
-            student = Student.objects.filter(xh=ele.xh)
-            if student.get('name') != name:
-                rec.remove(ele)
+    body_list = request_body_serialize_init(request)
+    for item in body_list.keys():
+        if item == 'xh' :
+            rec = HistoryRecord.objects.filter(questionnaireId=questionnaireId,xh__icontains=body_list.get('xh'))
+        # elif item == 'name':
+        #     for ele in rec:
+        #         student = Student.objects.filter(xh=ele.xh)
+        #         if student.get('name') != body_list.get('name'):
+        #             rec.remove(ele)
     paginator = Paginator(rec, length)
     try:
         paginator_page = paginator.page(page_num)
     except EmptyPage:
         return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '没有该页面'}, json_dumps_params={'ensure_ascii': False})
     ret = {'message': 'ok',
-           'data': paginator2dict(paginator_page, ["id", "xh", "questionnaireId", "createTime", "updateTime"])}
+           'data': paginator2dict(paginator_page, ["id", "xh", "questionnaireId","v1","v2","v3"])}
     return JsonResponse(data=ret, json_dumps_params={'ensure_ascii': False})
 
 
@@ -449,7 +449,7 @@ def templateFiles(request, type):
                             json_dumps_params={'ensure_ascii': False})
 
 
-@permitted_methods(["POST"])
+@permitted_methods(["GET"])
 def fileDown(request,questionnaireId):
     questionnaires = Questionnaire.objects.get(id=questionnaireId)
     records = Record.objects.filter(id=questionnaireId)
