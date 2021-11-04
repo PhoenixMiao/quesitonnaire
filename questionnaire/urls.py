@@ -38,6 +38,7 @@ urlpatterns = [
     url(r'^poll_activate/(.+)$',poll_views.poll_activate),
     url(r'^poll_pause/(.+)$',poll_views.poll_pause),
     url(r'^record_add/',poll_views.record_add),
+    url(r'^record_add_judge/', poll_views.record_add_judge),
     url(r'^record_change/',poll_views.record_change),
     url(r'^record/(.+)$',poll_views.record_meta),
     url(r'^records/(.+)$',poll_views.records),
@@ -46,7 +47,8 @@ urlpatterns = [
     url(r'^poll_file/(.+)$',poll_views.file),
     url(r'^poll_template/(.+)$',poll_views.templateFiles),
     url(r'^poll_download/(.+)$',poll_views.fileDown),
-
-    url(r'^templates/(.+)$', poll_views.templateFiles),
-    url(r'^templates/(.+)$', poll_views.templateFiles),
+    url(r'^poll_dynamic_filtering/(.+)$',poll_views.dynamic_filtering),
+    url(r'^whitelist_search/(.+)$',poll_views.whitelist_search),
+    url(r'^blacklist_search/(.+)$', poll_views.blacklist_search),
+    url(r'^dynamic_filtering/(.+)$',poll_views.dynamic_filtering),
 ]
