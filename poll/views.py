@@ -1,4 +1,4 @@
-from poll.models import Questionnaire, Whitelist, Blacklist,Record,HistoryRecord
+from poll.models import Questionnaire, Whitelist, Blacklist,Record,HistoryRecord,Condition
 from django.http import JsonResponse
 from http import HTTPStatus
 from django.forms.models import model_to_dict
@@ -78,6 +78,17 @@ def whitelist(request, pollId):
            'data':paginator2dict(paginator_page,["xh","xm","glyx"])}
     return JsonResponse(data=ret, json_dumps_params={'ensure_ascii': False})
 
+@permitted_methods(["POST"])
+def whitelist_search(request,pollId):
+    vars = request_body_serialize(request)
+    whiteList = Whitelist.objects.filter(xh__icontains=vars['xh'],questionnaireId=pollId)
+    if(len(whiteList)==0):
+        return JsonResponse(status=HTTPStatus.NO_CONTENT, data={"error": "该学生并不在白名单内"},
+                            json_dumps_params={'ensure_ascii': False})
+    ret = {'message': 'ok',
+           'data':model_to_dict(whiteList[0],fields=['questionnaireId','xh'])}
+    return JsonResponse(data=ret, json_dumps_params={'ensure_ascii': False})
+
 
 @permitted_methods(["DELETE"])
 def whitelist_delete(request, pollId):
@@ -125,6 +136,16 @@ def blacklist(request, pollId):
            'data': paginator2dict(paginator_page, ["xh", "xm", "glyx"])}
     return JsonResponse(data=ret, json_dumps_params={'ensure_ascii': False})
 
+@permitted_methods(["POST"])
+def blacklist_search(request,pollId):
+    vars = request_body_serialize(request)
+    blackList = Blacklist.objects.filter(xh__icontains=vars['xh'],questionnaireId=pollId)
+    if(len(blackList)==0):
+        return JsonResponse(status=HTTPStatus.NO_CONTENT, data={"error": "该学生并不在黑名单内"},
+                            json_dumps_params={'ensure_ascii': False})
+    ret = {'message': 'ok',
+           'data':model_to_dict(blackList[0],fields=['questionnaireId','xh'])}
+    return JsonResponse(data=ret, json_dumps_params={'ensure_ascii': False})
 
 @permitted_methods(["DELETE"])
 def blacklist_delete(request, pollId):
@@ -220,7 +241,7 @@ def poll_pause(request,pollId):
 
 
 @permitted_methods(["POST"])
-def record_add(request):
+def record_add_judge(request):
     body_list = request_body_serialize_init(request)
     xh = body_list.get('xh')
     questionnaire_id = body_list.get('questionnaireId')
@@ -233,6 +254,14 @@ def record_add(request):
     if len(stu)==0:
         return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '没有该学生'},
                             json_dumps_params={'ensure_ascii': False})
+    whitelist = Whitelist.objects.filter(questionnaireId=questionnaire_id,xh=xh)
+    blacklist = Blacklist.objects.filter(questionnaireId=questionnaire_id,xh=xh)
+    if len(whitelist)==0:
+        return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '该学生并不在白名单内'},
+                            json_dumps_params={'ensure_ascii': False})
+    if len(blacklist)!=0:
+        return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '该学生并在黑名单内'},
+                            json_dumps_params={'ensure_ascii': False})
     questionnaire_dic = model_to_dict(questionnaire)
     if questionnaire_dic.get("status") != 1:
         return JsonResponse(status=HTTPStatus.NOT_ACCEPTABLE, data={'error': '该问卷并不在发布状态'},
@@ -242,6 +271,14 @@ def record_add(request):
         if questionnaire_dic.get("oneoff") == 0:
             return JsonResponse(status=HTTPStatus.NOT_ACCEPTABLE, data={'error': '该问卷一人一份，只能修改单人记录'},
                                 json_dumps_params={'ensure_ascii': False})
+    return JsonResponse(data={'message': '该学生可以填写问卷'}, json_dumps_params={'ensure_ascii': False})
+
+
+@permitted_methods(["POST"])
+def record_add(request):
+    body_list = request_body_serialize_init(request)
+    xh = body_list.get('xh')
+    questionnaire_id = body_list.get('questionnaireId')
     sub_body_list = list(body_list.values())[list(body_list.keys()).index("v1"):]
     size = len(sub_body_list)
     for i in range(size+1,21):
@@ -256,6 +293,7 @@ def record_add(request):
                                  v17=sub_body_list[16], v18=sub_body_list[17], v19=sub_body_list[18],
                                  v20=sub_body_list[19])
     return JsonResponse(data={'message': 'ok'}, json_dumps_params={'ensure_ascii': False})
+
 
 @permitted_methods(["POST"])
 def record_change(request):
@@ -408,6 +446,28 @@ def history_records(request,questionnaireId):
     return JsonResponse(data=ret, json_dumps_params={'ensure_ascii': False})
 
 
+@permitted_methods(["GET"])
+def dynamic_filtering(request,questionnaireId):
+    relations = Whitelist.objects.filter(questionnaireId=questionnaireId)
+    xhs = [ele.xh for ele in relations]
+    students = Student.objects.filter(xh__in=xhs).order_by('xh')
+    # res = model_to_dict(students,fields=['xh','xm','glyx','cc'])
+    conditions = Condition.objects.filter(questionnaireId=questionnaireId)
+    tmp = []
+    for ele in conditions:
+        tmp.append(model_to_dict(ele,fields=['key','values']))
+    for ele in tmp:
+        l ="SELECT * FROM student WHERE"+ele['key']+"='"+ele['values']+"'"
+        students = students.raw(l)
+        if len(students)==0:
+            return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '没有符合条件的学生'}, json_dumps_params={'ensure_ascii': False})
+    res = []
+    for ele in students:
+        res.append(model_to_dict(ele,fields=['xh','xm','xq','glyx']))
+    ret = {'message': 'ok', 'data': res}
+    return JsonResponse(data=ret, json_dumps_params={'ensure_ascii': False})
+
+
 @permitted_methods(["POST"])
 def file(request,questionnaireId):
     questionnaires = Questionnaire.objects.filter(id=questionnaireId)
@@ -443,6 +503,16 @@ def templateFiles(request, type):
         writer = csv.writer(response)
         writer.writerow(["学号"])
         writer.writerow(["10204xxxxx"])
+        return response
+    elif type == "student":
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment;filename=student.csv'
+        response.write(codecs.BOM_UTF8)
+        writer = csv.writer(response)
+        writer.writerow(["学号"])
+        writer.writerow(["10204xxxxx"])
+        writer.writerow(["姓名"])
+        writer.writerow((["张三"]))
         return response
     else:
         return JsonResponse(status=HTTPStatus.NOT_ACCEPTABLE, data={'error': '参数错误'},
