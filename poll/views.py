@@ -88,8 +88,11 @@ def whitelist_search(request,pollId):
     if(len(whiteList)==0):
         return JsonResponse(status=HTTPStatus.NO_CONTENT, data={"error": "该学生并不在白名单内"},
                             json_dumps_params={'ensure_ascii': False})
+    res = []
+    for ele in whiteList:
+        res.append(model_to_dict(ele,fields=['questionnaireId','xh']))
     ret = {'message': 'ok',
-           'data':model_to_dict(whiteList[0],fields=['questionnaireId','xh'])}
+           'data':res}
     return JsonResponse(data=ret, json_dumps_params={'ensure_ascii': False})
 
 
@@ -146,8 +149,11 @@ def blacklist_search(request,pollId):
     if(len(blackList)==0):
         return JsonResponse(status=HTTPStatus.NO_CONTENT, data={"error": "该学生并不在黑名单内"},
                             json_dumps_params={'ensure_ascii': False})
+    res = []
+    for ele in whiteList:
+        res.append(model_to_dict(ele,fields=['questionnaireId','xh']))
     ret = {'message': 'ok',
-           'data':model_to_dict(blackList[0],fields=['questionnaireId','xh'])}
+           'data':res}
     return JsonResponse(data=ret, json_dumps_params={'ensure_ascii': False})
 
 @permitted_methods(["DELETE"])
