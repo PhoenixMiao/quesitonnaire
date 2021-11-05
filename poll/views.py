@@ -65,34 +65,23 @@ def meta(request, pollId):
     return JsonResponse(data=ret, json_dumps_params={'ensure_ascii': False})
 
 
-@permitted_methods(["GET"])
-def whitelist(request, pollId):
-    page_num = request.GET.get('p', 1)
-    length = request.GET.get('l', 15)
-    relations = Whitelist.objects.filter(questionnaireId=pollId)
-    xhs = [ele.xh for ele in relations]
-    student = Student.objects.filter(xh__in=xhs).order_by('xh')
-    paginator = Paginator(student,length)
-    try:
-        paginator_page = paginator.page(page_num)
-    except EmptyPage:
-        return JsonResponse(status=HTTPStatus.NO_CONTENT,data = {"error":"没有该页面"},json_dumps_params={'ensure_ascii':False})
-    ret = {'message': 'ok',
-           'data':paginator2dict(paginator_page,["xh","xm","glyx"])}
-    return JsonResponse(data=ret, json_dumps_params={'ensure_ascii': False})
-
 @permitted_methods(["POST"])
 def whitelist_search(request,pollId):
+    page_num = request.GET.get('p', 1)
+    length = request.GET.get('l', 15)
     vars = request_body_serialize(request)
     whiteList = Whitelist.objects.filter(xh__icontains=vars['xh'],questionnaireId=pollId)
     if(len(whiteList)==0):
         return JsonResponse(status=HTTPStatus.NO_CONTENT, data={"error": "该学生并不在白名单内"},
                             json_dumps_params={'ensure_ascii': False})
-    res = []
-    for ele in whiteList:
-        res.append(model_to_dict(ele,fields=['questionnaireId','xh']))
+    paginator = Paginator(whiteList,length)
+    try:
+        paginator_page = paginator.page(page_num)
+    except EmptyPage:
+        return JsonResponse(status=HTTPStatus.NO_CONTENT, data={"error": "没有该页面"},
+                            json_dumps_params={'ensure_ascii': False})
     ret = {'message': 'ok',
-           'data':res}
+           'data': paginator2dict(paginator_page,['questionnaireId','xh'])}
     return JsonResponse(data=ret, json_dumps_params={'ensure_ascii': False})
 
 
@@ -126,35 +115,25 @@ def whitelist_import(request, pollId):
         return JsonResponse(data={'message': 'ok'}, json_dumps_params={'ensure_ascii': False})
 
 
-@permitted_methods(["GET"])
-def blacklist(request, pollId):
-    page_num = request.GET.get('p', 1)
-    length = request.GET.get('l', 15)
-    relations = Blacklist.objects.filter(questionnaireId=pollId)
-    xhs = [ele.xh for ele in relations]
-    student = Student.objects.filter(xh__in=xhs).order_by('xh')
-    paginator = Paginator(student,length)
-    try:
-        paginator_page = paginator.page(page_num)
-    except EmptyPage:
-        return JsonResponse(status=HTTPStatus.NO_CONTENT,data = {"error":"没有该页面"},json_dumps_params={'ensure_ascii':False})
-    ret = {'message': 'ok',
-           'data': paginator2dict(paginator_page, ["xh", "xm", "glyx"])}
-    return JsonResponse(data=ret, json_dumps_params={'ensure_ascii': False})
-
 @permitted_methods(["POST"])
 def blacklist_search(request,pollId):
+    page_num = request.GET.get('p', 1)
+    length = request.GET.get('l', 15)
     vars = request_body_serialize(request)
     blackList = Blacklist.objects.filter(xh__icontains=vars['xh'],questionnaireId=pollId)
     if(len(blackList)==0):
         return JsonResponse(status=HTTPStatus.NO_CONTENT, data={"error": "该学生并不在黑名单内"},
                             json_dumps_params={'ensure_ascii': False})
-    res = []
-    for ele in blackList:
-        res.append(model_to_dict(ele,fields=['questionnaireId','xh']))
+    paginator = Paginator(blackList,length)
+    try:
+        paginator_page = paginator.page(page_num)
+    except EmptyPage:
+        return JsonResponse(status=HTTPStatus.NO_CONTENT, data={"error": "没有该页面"},
+                            json_dumps_params={'ensure_ascii': False})
     ret = {'message': 'ok',
-           'data':res}
+           'data': paginator2dict(paginator_page,['questionnaireId','xh'])}
     return JsonResponse(data=ret, json_dumps_params={'ensure_ascii': False})
+
 
 @permitted_methods(["DELETE"])
 def blacklist_delete(request, pollId):
