@@ -6,7 +6,7 @@ from Utils.wrappers import permitted_methods
 from Utils.tools import request_body_serialize,request_body_serialize_init
 from django.core.paginator import Paginator,EmptyPage
 from student.models import Student
-from Utils.tools import paginator2dict
+from Utils.tools import paginator2dict,paginator3dict,paginator4dict,paginator5dict
 from Utils.fileTool import upload_file
 import xlwt
 import io, csv, codecs
@@ -15,29 +15,32 @@ from django.http import HttpResponse
 
 @permitted_methods(["GET"])
 def polls(request, type):
+    page_num = request.GET.get('p', 1)
+    length = request.GET.get('l', 15)
     if type == '' or type is None:
         # 获取未归档的问卷列表
         questionnaires = Questionnaire.objects.exclude(status=-1)
-        questionnaires_dict = []
-        for ele in questionnaires:
-            my_ele = model_to_dict(ele, fields=["id", "title", "creatorId", "oneoff", "status"])
-            my_ele['createTime'] = ele.createTime.strftime("%Y-%m-%d %H:%M")
-            my_ele['updateTime'] = ele.updateTime.strftime("%Y-%m-%d %H:%M")
-            questionnaires_dict.append(my_ele)
-        return JsonResponse(data={'message': 'ok', 'data': questionnaires_dict}, json_dumps_params={'ensure_ascii': False})
+        paginator = Paginator(questionnaires, length)
+        try:
+            paginator_page = paginator.page(page_num)
+        except EmptyPage:
+            return JsonResponse(status=HTTPStatus.NO_CONTENT, data={"error": "没有该页面"},
+                                json_dumps_params={'ensure_ascii': False})
+        ret = {'message': 'ok',
+               'data': paginator4dict(paginator_page, ["id", "title", "creatorId", "oneoff", "status",'createTime','updateTime'])}
+        return JsonResponse(data=ret, json_dumps_params={'ensure_ascii': False})
     elif type == 'archive':
         # 获取已归档的问卷列表：
         questionnaires = Questionnaire.objects.filter(status=-1)
-        questionnaires_dict = []
-        for ele in questionnaires:
-            my_ele = model_to_dict(ele, fields=["id", "title", "creatorId", "oneoff", "status"])
-            my_ele['createTime'] = ele.createTime.strftime("%Y-%m-%d %H:%M")
-            my_ele['updateTime'] = ele.updateTime.strftime("%Y-%m-%d %H:%M")
-            my_ele['archiveTime'] = ele.updateTime.strftime("%Y-%m-%d %H:%M")
-            rec = HistoryRecord.objects.filter(questionnaireId=my_ele['id'])
-            my_ele['times'] = len(rec)
-            questionnaires_dict.append(my_ele)
-        return JsonResponse(data={"message": "ok", "data": questionnaires_dict}, json_dumps_params={'ensure_ascii': False})
+        paginator = Paginator(questionnaires, length)
+        try:
+            paginator_page = paginator.page(page_num)
+        except EmptyPage:
+            return JsonResponse(status=HTTPStatus.NO_CONTENT, data={"error": "没有该页面"},
+                                json_dumps_params={'ensure_ascii': False})
+        ret = {'message': 'ok',
+               'data': paginator5dict(paginator_page,["id", "title", "creatorId", "oneoff", "status", 'createTime', 'updateTime'])}
+        return JsonResponse(data=ret, json_dumps_params={'ensure_ascii': False})
     else:
         return JsonResponse(status=HTTPStatus.NOT_ACCEPTABLE, data={'error': '参数错误'},
                             json_dumps_params={'ensure_ascii': False})

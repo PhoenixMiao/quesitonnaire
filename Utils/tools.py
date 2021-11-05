@@ -1,5 +1,6 @@
 from django.forms.models import model_to_dict
 from django.http.request import QueryDict
+from poll.models import Questionnaire, Whitelist, Blacklist,Record,HistoryRecord,Condition
 import json
 
 # 将Paginator对象转换为dict
@@ -44,6 +45,46 @@ def paginator3dict(page,fields=[]):
         dict = {'xh':my_ele['xh'],'xm':my_ele['xm'],'glyx':my_ele['glyx'],'sfdr':my_ele['sfdr'],'sftb':my_ele['sftb']}
         eles.append(dict)
     result['list'] = eles
+    return result
+
+def paginator4dict(page, fields=[]):
+    result = {
+        'list': [],
+        'count': page.paginator.count,
+        'page_num': page.paginator.num_pages,
+        'has_previous': page.has_previous(),
+        'has_next': page.has_next(),
+        'previous_page_num': page.previous_page_number() if page.has_previous() else 1,
+        'next_page_num': page.next_page_number() if page.has_next() else page.paginator.num_pages
+    }
+    questionnaires_dict = []
+    for ele in page.object_list:
+        my_ele = model_to_dict(ele, fields=["id", "title", "creatorId", "oneoff", "status"])
+        my_ele['createTime'] = ele.createTime.strftime("%Y-%m-%d %H:%M")
+        my_ele['updateTime'] = ele.updateTime.strftime("%Y-%m-%d %H:%M")
+        questionnaires_dict.append(my_ele)
+    result['list'] = questionnaires_dict
+    return result
+
+def paginator5dict(page, fields=[]):
+    result = {
+        'list': [],
+        'count': page.paginator.count,
+        'page_num': page.paginator.num_pages,
+        'has_previous': page.has_previous(),
+        'has_next': page.has_next(),
+        'previous_page_num': page.previous_page_number() if page.has_previous() else 1,
+        'next_page_num': page.next_page_number() if page.has_next() else page.paginator.num_pages
+    }
+    questionnaires_dict = []
+    for ele in page.object_list:
+        my_ele = model_to_dict(ele, fields=["id", "title", "creatorId", "oneoff", "status"])
+        my_ele['createTime'] = ele.createTime.strftime("%Y-%m-%d %H:%M")
+        my_ele['updateTime'] = ele.updateTime.strftime("%Y-%m-%d %H:%M")
+        rec = HistoryRecord.objects.filter(questionnaireId=my_ele['id'])
+        my_ele['times'] = len(rec)
+        questionnaires_dict.append(my_ele)
+    result['list'] = questionnaires_dict
     return result
 
 
