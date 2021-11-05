@@ -150,7 +150,7 @@ def blacklist_search(request,pollId):
         return JsonResponse(status=HTTPStatus.NO_CONTENT, data={"error": "该学生并不在黑名单内"},
                             json_dumps_params={'ensure_ascii': False})
     res = []
-    for ele in whiteList:
+    for ele in blackList:
         res.append(model_to_dict(ele,fields=['questionnaireId','xh']))
     ret = {'message': 'ok',
            'data':res}
