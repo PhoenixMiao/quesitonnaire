@@ -16,7 +16,7 @@ class UploadFileForm(forms.Form):
 #上传文件的过程
 def upload_file(request):
     if request.method == 'POST':
-        vars = request_body_serialze_file(request)
+        vars = request_body_serialize_file(request)
         form = UploadFileForm(request.POST, vars)
         ret = handle_uploaded_file(form.file)
         if ret == None :
