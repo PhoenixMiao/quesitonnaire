@@ -1,6 +1,7 @@
 from django.forms.models import model_to_dict
 from django.http.request import QueryDict
 from poll.models import Questionnaire, Whitelist, Blacklist,Record,HistoryRecord,Condition
+from student.models import Student
 import json
 
 # 将Paginator对象转换为dict
@@ -85,6 +86,25 @@ def paginator5dict(page, fields=[]):
         my_ele['times'] = len(rec)
         questionnaires_dict.append(my_ele)
     result['list'] = questionnaires_dict
+    return result
+
+def paginator6dict(page, fields=[]):
+    result = {
+        'list': [],
+        'count': page.paginator.count,
+        'page_num': page.paginator.num_pages,
+        'has_previous': page.has_previous(),
+        'has_next': page.has_next(),
+        'previous_page_num': page.previous_page_number() if page.has_previous() else 1,
+        'next_page_num': page.next_page_number() if page.has_next() else page.paginator.num_pages
+    }
+    eles = []
+    for obj in page.object_list:
+        tmp = model_to_dict(obj,fields=fields)
+        student = model_to_dict(Student.objects.get(xh=tmp['xh']))
+        tmp['xm']=student['xm']
+        eles.append(tmp)
+    result['list'] = eles
     return result
 
 
