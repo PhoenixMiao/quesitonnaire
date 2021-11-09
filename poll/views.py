@@ -6,7 +6,7 @@ from Utils.wrappers import permitted_methods
 from Utils.tools import request_body_serialize,request_body_serialize_init
 from django.core.paginator import Paginator,EmptyPage
 from student.models import Student
-from Utils.tools import paginator2dict,paginator3dict,paginator4dict,paginator5dict
+from Utils.tools import paginator2dict,paginator3dict,paginator4dict,paginator5dict,paginator6dict
 from Utils.fileTool import upload_file
 import xlwt
 import io, csv, codecs
@@ -81,7 +81,7 @@ def whitelist_search(request,pollId):
         return JsonResponse(status=HTTPStatus.NO_CONTENT, data={"error": "没有该页面"},
                             json_dumps_params={'ensure_ascii': False})
     ret = {'message': 'ok',
-           'data': paginator2dict(paginator_page,['questionnaireId','xh'])}
+           'data': paginator6dict(paginator_page,['questionnaireId','xh'])}
     return JsonResponse(data=ret, json_dumps_params={'ensure_ascii': False})
 
 
@@ -131,7 +131,7 @@ def blacklist_search(request,pollId):
         return JsonResponse(status=HTTPStatus.NO_CONTENT, data={"error": "没有该页面"},
                             json_dumps_params={'ensure_ascii': False})
     ret = {'message': 'ok',
-           'data': paginator2dict(paginator_page,['questionnaireId','xh'])}
+           'data': paginator6dict(paginator_page,['questionnaireId','xh'])}
     return JsonResponse(data=ret, json_dumps_params={'ensure_ascii': False})
 
 
