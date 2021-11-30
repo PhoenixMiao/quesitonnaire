@@ -11,6 +11,8 @@ from Utils.fileTool import upload_file
 import xlwt
 import io, csv, codecs
 from django.http import HttpResponse
+from openpyxl import Workbook
+from openpyxl import load_workbook
 
 
 @permitted_methods(["GET"])
@@ -101,18 +103,26 @@ def whitelist_delete(request, pollId):
 
 @permitted_methods(["POST"])
 def whitelist_import(request, pollId):
-    # TODO 可以参考https://docs.djangoproject.com/zh-hans/3.0/topics/http/file-uploads/
-    xhs = upload_file(request)
-    if xhs[0] == False :
-        return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': xhs[1]},
-                            json_dumps_params={'ensure_ascii': False})
-    else:
-        xhs.remove("学号")
-        for xh in xhs:
-            whitelist = Whitelist.objects.filter(questionnaireId=pollId,xh=xh)
-            if len(whitelist) == 0 :
-                Whitelist.objects.create(questionnaireId=pollId,xh=xh)
-        return JsonResponse(data={'message': 'ok'}, json_dumps_params={'ensure_ascii': False})
+    tmpFile = request.FILES.get('whitelist')
+    workbook_ = load_workbook(tmpFile)
+    sheetnames = workbook_.get_sheet_names()
+    sheet = workbook_.get_sheet_by_name(sheetnames[0])
+    j=2
+    tmp = sheet.cell(row=2,column=1).value
+    while tmp:
+        student = Student.objects.filter(xh=tmp)
+        if (len(student) == 0):
+            return JsonResponse(status=HTTPStatus.NO_CONTENT, data={"error": "没有该学生"},
+                                json_dumps_params={'ensure_ascii': False})
+        blacklist = Blacklist.objects.filter(xh=tmp)
+        if (len(blacklist) != 0):
+            return JsonResponse(status=HTTPStatus.NO_CONTENT, data={"error": "该学生已经在黑名单里了"},
+                                json_dumps_params={'ensure_ascii': False})
+        Whitelist.objects.create(questionnaireId=pollId, xh=tmp)
+        j = j+1
+        tmp = sheet.cell(row=j,column=1).value
+    return JsonResponse(data={'message':'ok'}, json_dumps_params={'ensure_ascii': False})
+
 
 
 @permitted_methods(["POST"])
@@ -151,17 +161,26 @@ def blacklist_delete(request, pollId):
 
 @permitted_methods(["POST"])
 def blacklist_import(request, pollId):
-    xhs = upload_file(request)
-    if xhs[0] == False :
-        return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': xhs[1]},
-                            json_dumps_params={'ensure_ascii': False})
-    else:
-        xhs.remove("学号")
-        for xh in xhs:
-            blacklist = Blacklist.objects.filter(questionnaireId=pollId, xh=xh)
-            if len(blacklist) == 0:
-                Blacklist.objects.create(questionnaireId=pollId, xh=xh)
-        return JsonResponse(data={'message': 'ok'}, json_dumps_params={'ensure_ascii': False})
+    # reader = csv.reader(request)
+    tmpFile = request.FILES.get('blacklist')
+    workbook_ = load_workbook(tmpFile)
+    sheetnames = workbook_.get_sheet_names()
+    sheet = workbook_.get_sheet_by_name(sheetnames[0])
+    j=2
+    tmp = sheet.cell(row=2,column=1).value
+    while tmp:
+        student = Student.objects.filter(xh=tmp)
+        if (len(student) == 0):
+            return JsonResponse(status=HTTPStatus.NO_CONTENT, data={"error": "没有该学生"},
+                                json_dumps_params={'ensure_ascii': False})
+        whitelist = Whitelist.objects.filter(xh=tmp)
+        if (len(whitelist) != 0):
+            return JsonResponse(status=HTTPStatus.NO_CONTENT, data={"error": "该学生已经在白名单里了"},
+                                json_dumps_params={'ensure_ascii': False})
+        Blacklist.objects.create(questionnaireId=pollId, xh=tmp)
+        j = j+1
+        tmp = sheet.cell(row=j,column=1).value
+    return JsonResponse(data={'message':'ok'}, json_dumps_params={'ensure_ascii': False})
 
 
 @permitted_methods(["POST"])
@@ -497,10 +516,8 @@ def templateFiles(request, type):
         response['Content-Disposition'] = 'attachment;filename=student.csv'
         response.write(codecs.BOM_UTF8)
         writer = csv.writer(response)
-        writer.writerow(["学号"])
-        writer.writerow(["10204xxxxx"])
-        writer.writerow(["姓名"])
-        writer.writerow((["张三"]))
+        writer.writerow(["学号",'姓名','校区','是否在校','是否在籍','学历层次','管理院系','管理院系码','辅导员姓名','辅导员职工号'])
+        writer.writerow(["10204xxxxx",'张三','中北校区','是','是','本科生','软件工程','10010','李四','100300'])
         return response
     else:
         return JsonResponse(status=HTTPStatus.NOT_ACCEPTABLE, data={'error': '参数错误'},
@@ -509,53 +526,48 @@ def templateFiles(request, type):
 
 @permitted_methods(["GET"])
 def fileDown(request,questionnaireId):
-    questionnaires = Questionnaire.objects.get(id=questionnaireId)
-    records = Record.objects.filter(id=questionnaireId)
-    if questionnaires:
-        mes = model_to_dict(questionnaires,fields=['id','status','oneoff','title','scope','creatorId','createTime','updateTime','k1','k2','k3','k4','k5','k6','k7','k8','k9','k10','k11','k12','k13','k14','k15','k16','k17','k18','k19','k20'])
+    questionnaire = Questionnaire.objects.get(id=questionnaireId)
+    if questionnaire:
+        mes = model_to_dict(questionnaire,fields=['id','status','oneoff','title','scope','creatorId','createTime','updateTime','k1','k2','k3','k4','k5','k6','k7','k8','k9','k10','k11','k12','k13','k14','k15','k16','k17','k18','k19','k20'])
         if mes.get('status') != -1 :
-            return JsonResponse(status=HTTPStatus.NOT_ACCEPTABLE, data={'error': '该问卷尚未归档'},
-                                json_dumps_params={'ensure_ascii': False})
-        med = xlwt.Workbook(encoding='utf-8', style_compression=0)
-        sheet = med.add_sheet(u'归档问卷', cell_overwrite_ok=True)
-        col = ("序号","学号", "创建时间", "更新时间", mes.get('k1'), mes.get('k2'), mes.get('k3'), mes.get('k4'), mes.get('k4'), mes.get('k5'), mes.get('k6'), mes.get('k7'), mes.get('k8'), mes.get('k9'), mes.get('k10'),
-               mes.get('k11'),mes.get('k12'),mes.get('k13'),mes.get('k14'),mes.get('k15'),mes.get('k16'),mes.get('k17'),mes.get('k18'),mes.get('k19'),mes.get('k20'))
-        for i in range(0, 24):
-            sheet.write(0, i, col[i])
-        row = 1
-        j = 1
-        for i in records:
-            sheet.write(row, 0, j)
-            sheet.write(row, 1, str(i.xh))
-            sheet.write(row, 2, str(i.createTime))
-            sheet.write(row, 3, str(i.updateTime))
-            sheet.write(row, 4, str(i.v1))
-            sheet.write(row, 5, str(i.v2))
-            sheet.write(row, 6, str(i.v3))
-            sheet.write(row, 7, str(i.v4))
-            sheet.write(row, 8, str(i.v5))
-            sheet.write(row, 9, str(i.v6))
-            sheet.write(row, 10, str(i.v7))
-            sheet.write(row, 11, str(i.v8))
-            sheet.write(row, 12, str(i.v9))
-            sheet.write(row, 13, str(i.v10))
-            sheet.write(row, 14, str(i.v11))
-            sheet.write(row, 15, str(i.v12))
-            sheet.write(row, 16, str(i.v13))
-            sheet.write(row, 17, str(i.v14))
-            sheet.write(row, 18, str(i.v15))
-            sheet.write(row, 19, str(i.v16))
-            sheet.write(row, 20, str(i.v17))
-            sheet.write(row, 21, str(i.v18))
-            sheet.write(row, 22, str(i.v19))
-            sheet.write(row, 23, str(i.v20))
-            row = row + 1
-            j = j + 1
-        med.save("归档问卷.xls")
-        sio = io.BytesIO()
-        med.save(sio)
-        sio.seek(0)
-        response = HttpResponse(sio.getvalue(), content_type='application/vnd.ms-excel')
-        response['Content-Disposition'] = 'attachment; filename=archivedquestionnaire.xls'
-        response.write(sio.getvalue())
-        return response
+            records = Record.objects.filter(id=questionnaireId)
+            response = HttpResponse(content_type='text/csv')
+            response['Content-Disposition'] = 'attachment;filename=record.csv'
+            response.write(codecs.BOM_UTF8)
+            writer = csv.writer(response)
+            writer.writerow(["序号","学号", "创建时间", "更新时间", mes.get('k1'), mes.get('k2'), mes.get('k3'), mes.get('k4'), mes.get('k4'), mes.get('k5'), mes.get('k6'), mes.get('k7'), mes.get('k8'), mes.get('k9'), mes.get('k10'),
+                   mes.get('k11'),mes.get('k12'),mes.get('k13'),mes.get('k14'),mes.get('k15'),mes.get('k16'),mes.get('k17'),mes.get('k18'),mes.get('k19'),mes.get('k20')])
+            j = 1
+            for record in records:
+                tmp = model_to_dict(record,fields=['xh','createTime','updateTime','v1','v2','v3','v4','v5','v6','v7','v8','v9','v10','v11','v12','v13','v14','v15','v16','v17','v18','v19','v20'])
+                tmp['createTime'] = record.createTime.strftime("%Y-%m-%d %H:%M")
+                tmp['updateTime'] = record.updateTime.strftime("%Y-%m-%d %H:%M")
+                writer.writerow([j,tmp.get('xh'),tmp.get('createTime'),tmp.get('updateTime'),tmp.get('v1'),tmp.get('v2'),tmp.get('v3'),tmp.get('v4'),tmp.get('v5'),tmp.get('v6'),tmp.get('v7'),tmp.get('v8'),tmp.get('v8'),tmp.get('v9'),tmp.get('v9'),tmp.get('v10'),tmp.get('v11'),tmp.get('v12'),tmp.get('v13'),tmp.get('v14'),tmp.get('v15'),tmp.get('v16'),tmp.get('v17'),tmp.get('v18'),tmp.get('v19'),tmp.get('v20')])
+                j = j+1
+        else:
+            history_records = HistoryRecord.objects.filter(questionnaireId=questionnaireId)
+            response = HttpResponse(content_type='text/csv')
+            response['Content-Disposition'] = 'attachment;filename=history_record.csv'
+            response.write(codecs.BOM_UTF8)
+            writer = csv.writer(response)
+            writer.writerow(
+                ["序号", "学号", "创建时间", "更新时间",mes.get('k1'), mes.get('k2'), mes.get('k3'), mes.get('k4'), mes.get('k4'),
+                 mes.get('k5'), mes.get('k6'), mes.get('k7'), mes.get('k8'), mes.get('k9'), mes.get('k10'),
+                 mes.get('k11'), mes.get('k12'), mes.get('k13'), mes.get('k14'), mes.get('k15'), mes.get('k16'),
+                 mes.get('k17'), mes.get('k18'), mes.get('k19'), mes.get('k20')])
+            j = 1
+            for history_record in history_records:
+                tmp = model_to_dict(history_record,
+                                    fields=['xh', 'createTime', 'updateTime', 'v1', 'v2', 'v3', 'v4', 'v5', 'v6', 'v7',
+                                            'v8', 'v9', 'v10', 'v11', 'v12', 'v13', 'v14', 'v15', 'v16', 'v17', 'v18',
+                                            'v19', 'v20'])
+                tmp['createTime'] = history_record.createTime.strftime("%Y-%m-%d %H:%M")
+                tmp['updateTime'] = history_record.updateTime.strftime("%Y-%m-%d %H:%M")
+                writer.writerow(
+                    [j, tmp.get('xh'), tmp.get('createTime'), tmp.get('updateTime'), tmp.get('v1'), tmp.get('v2'),
+                     tmp.get('v3'), tmp.get('v4'), tmp.get('v5'), tmp.get('v6'), tmp.get('v7'), tmp.get('v8'),
+                     tmp.get('v8'), tmp.get('v9'), tmp.get('v9'), tmp.get('v10'), tmp.get('v11'), tmp.get('v12'),
+                     tmp.get('v13'), tmp.get('v14'), tmp.get('v15'), tmp.get('v16'), tmp.get('v17'), tmp.get('v18'),
+                     tmp.get('v19'), tmp.get('v20')])
+                j = j + 1
+    return response

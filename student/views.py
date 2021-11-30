@@ -15,6 +15,8 @@ from Utils.tools import request_body_serialize_init
 from .models import DepartAdmin
 from django.forms.models import model_to_dict
 from Utils.fileTool import upload_file2
+from openpyxl import Workbook
+from openpyxl import load_workbook
 
 @permitted_methods(["POST"])
 def student(request):
@@ -73,24 +75,27 @@ def meta(request):
 
 @permitted_methods(["POST"])
 def student_import(request):
-    stus = upload_file2(request)
-    for stu_mes in stus:
-        userId = '20130053'
-        userName = 'Tang'
+    tmpFile = request.FILES.get('studentlist')
+    workbook_ = load_workbook(tmpFile)
+    sheetnames = workbook_.get_sheet_names()
+    sheet = workbook_.get_sheet_by_name(sheetnames[0])
+    j=2
+    tmp = sheet.cell(row=2,column=1).value
+    while tmp != None:
+        stu_mes = {}
+        title = ['xh','name','xq','sfzx','sfzj','cc','glyx','glyxm','instructor_name','instructor_num']
+        for i in range(0,10):
+            stu_mes[title[i]] = sheet.cell(row=j,column=i+1).value
         relations2 = Student.objects.filter(xh=stu_mes.get("xh"))
         if len(relations2) >0 :
-            #return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '该学生已存在'},json_dumps_params={'ensure_ascii': False})
-            continue
+            return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '该学生已存在'},json_dumps_params={'ensure_ascii': False})
         if stu_mes.get("xh")==None or stu_mes.get("name")==None or stu_mes.get("xq")==None or stu_mes.get("sfzx")==None or stu_mes.get("cc")==None or stu_mes.get("glyx")==None or stu_mes.get("instructor_name")==None or stu_mes.get("instructor_num")==None:
-            # return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '参数不全，字段不齐'},json_dumps_params={'ensure_ascii': False})
-            continue
-        relations3 = Instructor_Student.objects.filter(zgh=stu_mes.get("instructor_num"))
-        if (len(relations3) == 0):
-            #return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '该辅导员不存在'},json_dumps_params={'ensure_ascii': False})
-            continue
-        Student.objects.create(xh=stu_mes.get("xh"),xm=stu_mes.get("name"),xq=stu_mes.get("xq"),sfzx=stu_mes.get("sfzx"),sfzj=True,
-                            cc=stu_mes.get("cc"),glyx=stu_mes.get("glyx"),sfdr=True,sftb=False)
+            return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '参数不全，字段不齐'},json_dumps_params={'ensure_ascii': False})
+        Student.objects.create(xh=stu_mes.get("xh"),xm=stu_mes.get("name"),xq=stu_mes.get("xq"),sfzx=stu_mes.get("sfzx"),sfzj=stu_mes.get('sfzj'),
+                            cc=stu_mes.get("cc"),glyx=stu_mes.get("glyx"),glyxm=stu_mes.get('glyxm'),sfdr=True,sftb=False)
         Instructor_Student.objects.create(zgh=stu_mes.get("instructor_num"),xm=stu_mes.get("instructor_name"),xh=stu_mes.get("xh"))
+        j = j+1
+        tmp = sheet.cell(row=j,column=1).value
     return JsonResponse(data={'message': 'ok'}, json_dumps_params={'ensure_ascii': False})
 
 
