@@ -88,9 +88,11 @@ def student_import(request):
             stu_mes[title[i]] = sheet.cell(row=j,column=i+1).value
         relations2 = Student.objects.filter(xh=stu_mes.get("xh"))
         if len(relations2) >0 :
-            return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '该学生已存在'},json_dumps_params={'ensure_ascii': False})
+            #return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '该学生已存在'},json_dumps_params={'ensure_ascii': False})
+            continue
         if stu_mes.get("xh")==None or stu_mes.get("name")==None or stu_mes.get("xq")==None or stu_mes.get("sfzx")==None or stu_mes.get("cc")==None or stu_mes.get("glyx")==None or stu_mes.get("instructor_name")==None or stu_mes.get("instructor_num")==None:
-            return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '参数不全，字段不齐'},json_dumps_params={'ensure_ascii': False})
+            #return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '参数不全，字段不齐'},json_dumps_params={'ensure_ascii': False})
+            continue
         Student.objects.create(xh=stu_mes.get("xh"),xm=stu_mes.get("name"),xq=stu_mes.get("xq"),sfzx=stu_mes.get("sfzx"),sfzj=stu_mes.get('sfzj'),
                             cc=stu_mes.get("cc"),glyx=stu_mes.get("glyx"),glyxm=stu_mes.get('glyxm'),sfdr=True,sftb=False)
         Instructor_Student.objects.create(zgh=stu_mes.get("instructor_num"),xm=stu_mes.get("instructor_name"),xh=stu_mes.get("xh"))
