@@ -461,10 +461,12 @@ def dynamic_filtering(request,questionnaireId):
     # res = model_to_dict(students,fields=['xh','xm','glyx','cc'])
     conditions = Condition.objects.filter(questionnaireId=questionnaireId)
     tmp = []
+    contants = " student "
     for ele in conditions:
         tmp.append(model_to_dict(ele,fields=['key','values']))
     for ele in tmp:
-        l ="SELECT * FROM student WHERE"+ele['key']+"='"+ele['values']+"'"
+        value = '"'+ele['values']+'"'
+        l ="SELECT * FROM" + contants + "WHERE "+ele['key']+" = "+value
         students = students.raw(l)
         if len(students)==0:
             return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '没有符合条件的学生'}, json_dumps_params={'ensure_ascii': False})
@@ -473,6 +475,35 @@ def dynamic_filtering(request,questionnaireId):
         res.append(model_to_dict(ele,fields=['xh','xm','xq','glyx']))
     ret = {'message': 'ok', 'data': res}
     return JsonResponse(data=ret, json_dumps_params={'ensure_ascii': False})
+
+@permitted_methods(["GET"])
+def dynamic_fileDown(request,questionnaireId):
+    relations = Whitelist.objects.filter(questionnaireId=questionnaireId)
+    xhs = [ele.xh for ele in relations]
+    students = Student.objects.filter(xh__in=xhs).order_by('xh')
+    # res = model_to_dict(students,fields=['xh','xm','glyx','cc'])
+    conditions = Condition.objects.filter(questionnaireId=questionnaireId)
+    tmp = []
+    contants = " student "
+    for ele in conditions:
+        tmp.append(model_to_dict(ele,fields=['key','values']))
+    for ele in tmp:
+        value = '"'+ele['values']+'"'
+        l ="SELECT * FROM" + contants + "WHERE "+ele['key']+" = "+value
+        students = students.raw(l)
+        if len(students)==0:
+            return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '没有符合条件的学生'}, json_dumps_params={'ensure_ascii': False})
+    res = []
+    for ele in students:
+        res.append(model_to_dict(ele,fields=['xh','xm','xq','glyx']))
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment;filename=dynamic.csv'
+    response.write(codecs.BOM_UTF8)
+    writer = csv.writer(response)
+    writer.writerow(["学号","姓名","校区","管理院系"])
+    for ele in res:
+        writer.writerow([ele.get('xh'),ele.get('xm'),ele.get('xq'),ele.get('glyx')])
+    return response
 
 
 @permitted_methods(["POST"])
