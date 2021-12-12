@@ -14,6 +14,8 @@ from django.http import HttpResponse
 from openpyxl import Workbook
 from openpyxl import load_workbook
 
+import pandas as pd
+
 
 @permitted_methods(["GET"])
 def polls(request, type):
@@ -527,24 +529,24 @@ def file(request,questionnaireId):
 @permitted_methods(["GET"])
 def templateFiles(request, type):
     if type == "whitelist":
-        response = HttpResponse(content_type='text/csv')
-        response['Content-Disposition'] = 'attachment;filename=whitelist.csv'
+        response = HttpResponse(content_type='text/xlsx')
+        response['Content-Disposition'] = 'attachment;filename=whitelist.xlsx'
         response.write(codecs.BOM_UTF8)
         writer = csv.writer(response)
         writer.writerow(["学号"])
         writer.writerow(["10204xxxxx"])
         return response
     elif type == "blacklist":
-        response = HttpResponse(content_type='text/csv')
-        response['Content-Disposition'] = 'attachment;filename=blacklist.csv'
+        response = HttpResponse(content_type='text/xlsx')
+        response['Content-Disposition'] = 'attachment;filename=blacklist.xlsx'
         response.write(codecs.BOM_UTF8)
         writer = csv.writer(response)
         writer.writerow(["学号"])
         writer.writerow(["10204xxxxx"])
         return response
     elif type == "student":
-        response = HttpResponse(content_type='text/csv')
-        response['Content-Disposition'] = 'attachment;filename=student.csv'
+        response = HttpResponse(content_type='text/xlsx')
+        response['Content-Disposition'] = 'attachment;filename=student.xlsx'
         response.write(codecs.BOM_UTF8)
         writer = csv.writer(response)
         writer.writerow(["学号",'姓名','校区','是否在校','是否在籍','学历层次','管理院系','管理院系码','辅导员姓名','辅导员职工号'])
