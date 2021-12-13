@@ -14,9 +14,6 @@ from django.http import HttpResponse
 from openpyxl import Workbook
 from openpyxl import load_workbook
 
-import pandas as pd
-
-
 @permitted_methods(["GET"])
 def polls(request, type):
     page_num = request.GET.get('p', 1)
