@@ -30,6 +30,26 @@ class Questionnaire(models.Model):
     k18 = models.CharField(max_length=50, null=True)
     k19 = models.CharField(max_length=50, null=True)
     k20 = models.CharField(max_length=50, null=True)
+    type1 = models.IntegerField(default=2, null=True)
+    type2 = models.IntegerField(default=2, null=True)
+    type3 = models.IntegerField(default=2, null=True)
+    type4 = models.IntegerField(default=2, null=True)
+    type5 = models.IntegerField(default=2, null=True)
+    type6 = models.IntegerField(default=2, null=True)
+    type7 = models.IntegerField(default=2, null=True)
+    type8 = models.IntegerField(default=2, null=True)
+    type9 = models.IntegerField(default=2, null=True)
+    type10 = models.IntegerField(default=2, null=True)
+    type11 = models.IntegerField(default=2, null=True)
+    type12 = models.IntegerField(default=2, null=True)
+    type13 = models.IntegerField(default=2, null=True)
+    type14 = models.IntegerField(default=2, null=True)
+    type15 = models.IntegerField(default=2, null=True)
+    type16 = models.IntegerField(default=2, null=True)
+    type17 = models.IntegerField(default=2, null=True)
+    type18 = models.IntegerField(default=2, null=True)
+    type19 = models.IntegerField(default=2, null=True)
+    type20 = models.IntegerField(default=2, null=True)
 
     class Meta:
         db_table = 'questionaire'
@@ -91,6 +111,7 @@ class HistoryRecord(models.Model):
     v19 = models.CharField(max_length=50, null=True)
     v20 = models.CharField(max_length=50, null=True)
 
+
     class Meta:
         db_table = 'history_record'
 
@@ -102,6 +123,19 @@ class Whitelist(models.Model):
 
     class Meta:
         db_table = 'whitelist'
+
+
+class Choice(models.Model):
+    questionnaireId = models.IntegerField(default=0, null=False)  # 问卷id
+    Id = models.IntegerField(default=0,null=False)
+    choiceNumber = models.IntegerField(default=0, null=False)
+    A = models.CharField(max_length=200, default='', null=True)
+    B = models.CharField(max_length=200, default='', null=True)
+    C = models.CharField(max_length=200, default='', null=True)
+    D = models.CharField(max_length=200, default='', null=True)
+
+    class Meta:
+        db_table = 'choice'
 
 
 class Blacklist(models.Model):

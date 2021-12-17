@@ -1,4 +1,4 @@
-from poll.models import Questionnaire, Whitelist, Blacklist,Record,HistoryRecord,Condition
+from poll.models import Questionnaire, Whitelist, Blacklist,Record,HistoryRecord,Condition,Choice
 from django.http import JsonResponse
 from http import HTTPStatus
 from django.forms.models import model_to_dict
@@ -13,6 +13,8 @@ import io, csv, codecs
 from django.http import HttpResponse
 from openpyxl import Workbook
 from openpyxl import load_workbook
+import wx
+
 
 @permitted_methods(["GET"])
 def polls(request, type):
@@ -45,6 +47,8 @@ def polls(request, type):
     else:
         return JsonResponse(status=HTTPStatus.NOT_ACCEPTABLE, data={'error': '参数错误'},
                             json_dumps_params={'ensure_ascii': False})
+
+
 
 
 @permitted_methods(["GET"])
@@ -84,6 +88,8 @@ def whitelist_search(request,pollId):
     ret = {'message': 'ok',
            'data': paginator6dict(paginator_page,['questionnaireId','xh'])}
     return JsonResponse(data=ret, json_dumps_params={'ensure_ascii': False})
+
+
 
 
 @permitted_methods(["DELETE"])
@@ -454,6 +460,8 @@ def history_records(request,questionnaireId):
 
 @permitted_methods(["GET"])
 def dynamic_filtering(request,questionnaireId):
+    page_num = request.GET.get('p', 1)
+    length = request.GET.get('l', 5)
     relations = Whitelist.objects.filter(questionnaireId=questionnaireId)
     xhs = [ele.xh for ele in relations]
     students = Student.objects.filter(xh__in=xhs).order_by('xh')
@@ -464,45 +472,26 @@ def dynamic_filtering(request,questionnaireId):
     for ele in conditions:
         tmp.append(model_to_dict(ele,fields=['key','values']))
     for ele in tmp:
-        value = '"'+ele['values']+'"'
-        l ="SELECT * FROM" + contants + "WHERE "+ele['key']+" = "+value
+        value = "'"+ele['values']+"'"
+        l ="SELECT * FROM" + contants + "WHERE"+ele['key']+"="+value
         students = students.raw(l)
         if len(students)==0:
             return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '没有符合条件的学生'}, json_dumps_params={'ensure_ascii': False})
-    res = []
-    for ele in students:
-        res.append(model_to_dict(ele,fields=['xh','xm','xq','glyx']))
-    ret = {'message': 'ok', 'data': res}
+    #res = []
+    #for ele in students:
+    #    res.append(model_to_dict(ele,fields=['xh','xm','xq','glyx']))
+    paginator = Paginator(students, length)
+    try:
+        paginator_page = paginator.page(page_num)
+    except EmptyPage:
+        return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '没有该页面'},
+                            json_dumps_params={'ensure_ascii': False})
+    ret = {'message': 'ok',
+           'data': paginator2dict(paginator_page,
+                                  ["xh", "xm", 'glyx', 'xq', ])}
     return JsonResponse(data=ret, json_dumps_params={'ensure_ascii': False})
 
-@permitted_methods(["GET"])
-def dynamic_fileDown(request,questionnaireId):
-    relations = Whitelist.objects.filter(questionnaireId=questionnaireId)
-    xhs = [ele.xh for ele in relations]
-    students = Student.objects.filter(xh__in=xhs).order_by('xh')
-    # res = model_to_dict(students,fields=['xh','xm','glyx','cc'])
-    conditions = Condition.objects.filter(questionnaireId=questionnaireId)
-    tmp = []
-    contants = " student "
-    for ele in conditions:
-        tmp.append(model_to_dict(ele,fields=['key','values']))
-    for ele in tmp:
-        value = '"'+ele['values']+'"'
-        l ="SELECT * FROM" + contants + "WHERE "+ele['key']+" = "+value
-        students = students.raw(l)
-        if len(students)==0:
-            return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '没有符合条件的学生'}, json_dumps_params={'ensure_ascii': False})
-    res = []
-    for ele in students:
-        res.append(model_to_dict(ele,fields=['xh','xm','xq','glyx']))
-    response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = 'attachment;filename=dynamic.csv'
-    response.write(codecs.BOM_UTF8)
-    writer = csv.writer(response)
-    writer.writerow(["学号","姓名","校区","管理院系"])
-    for ele in res:
-        writer.writerow([ele.get('xh'),ele.get('xm'),ele.get('xq'),ele.get('glyx')])
-    return response
+
 
 
 @permitted_methods(["POST"])
@@ -526,24 +515,24 @@ def file(request,questionnaireId):
 @permitted_methods(["GET"])
 def templateFiles(request, type):
     if type == "whitelist":
-        response = HttpResponse(content_type='text/xlsx')
-        response['Content-Disposition'] = 'attachment;filename=whitelist.xlsx'
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment;filename=whitelist.csv'
         response.write(codecs.BOM_UTF8)
         writer = csv.writer(response)
         writer.writerow(["学号"])
         writer.writerow(["10204xxxxx"])
         return response
     elif type == "blacklist":
-        response = HttpResponse(content_type='text/xlsx')
-        response['Content-Disposition'] = 'attachment;filename=blacklist.xlsx'
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment;filename=blacklist.csv'
         response.write(codecs.BOM_UTF8)
         writer = csv.writer(response)
         writer.writerow(["学号"])
         writer.writerow(["10204xxxxx"])
         return response
     elif type == "student":
-        response = HttpResponse(content_type='text/xlsx')
-        response['Content-Disposition'] = 'attachment;filename=student.xlsx'
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment;filename=student.csv'
         response.write(codecs.BOM_UTF8)
         writer = csv.writer(response)
         writer.writerow(["学号",'姓名','校区','是否在校','是否在籍','学历层次','管理院系','管理院系码','辅导员姓名','辅导员职工号'])
@@ -601,3 +590,255 @@ def fileDown(request,questionnaireId):
                      tmp.get('v19'), tmp.get('v20')])
                 j = j + 1
     return response
+
+class AnswerFill(wx.Frame):
+    def __init__(self,*args, **kw):
+        super(AnswerFill, self).__init__(*args, **kw)
+        self.Center()
+        self.pnl = wx.Panel(self)
+        self.topic = globalVariable.get_current()
+
+        self.vbox = wx.BoxSizer(wx.VERTICAL)
+
+        logo = wx.StaticText(self.pnl, label="问卷填写")
+        font = logo.GetFont()
+        font.PointSize += 30
+        font = font.Bold()
+        logo.SetFont(font)
+        self.vbox.Add(logo, proportion=0, flag=wx.FIXED_MINSIZE | wx.TOP | wx.CENTER, border=50)
+
+        que = wx.StaticBox(self.pnl, label="问 题")
+        self.question = wx.StaticText(self.pnl, -1, self.topic[0], size=(700, 100), style=wx.ALIGN_CENTER)  # 创建一个文本控件
+        font = wx.Font(wx.FontInfo(15).Bold())
+        self.question.SetFont(font)
+        hbox = wx.StaticBoxSizer(que, wx.HORIZONTAL)
+        hbox.Add(self.question, 0, wx.EXPAND | wx.TOP, 5)
+        self.vbox.Add(hbox, proportion=0, flag=wx.FIXED_MINSIZE | wx.TOP | wx.CENTER, border=20)
+
+        self.multiText = wx.TextCtrl(self.pnl, -1, "", size=(700, 200), style=wx.TE_MULTILINE)
+        self.multiText.SetInsertionPoint(0)
+        self.vbox.Add(self.multiText, proportion=0, flag=wx.FIXED_MINSIZE | wx.TOP | wx.CENTER, border=30)
+
+        self.sure = wx.Button(self.pnl, label="提交", size=(80, 25))
+        self.sure.Bind(wx.EVT_BUTTON,self.submit)
+        self.vbox.Add(self.sure, proportion=0, flag=wx.FIXED_MINSIZE | wx.TOP | wx.CENTER, border=10)
+
+        self.pnl.SetSizer(self.vbox)
+
+    def submit(self, event):
+        ans = self.multiText.GetValue()
+        globalVariable.append_answer(ans)
+        nextType =globalVariable.next_type()
+        if nextType==-1:
+            self.Close(True)
+        if nextType==0:
+            operation = AnswerChoice(None, title="问卷填写", size=(1024, 668))
+            operation.Show()
+            self.Close(True)
+        if nextType==1:
+            operation = AnswerFill(None,title="问卷填写", size=(1024, 668))
+            operation.Show()
+            self.Close(True)
+
+
+
+
+
+
+
+class AnswerChoice(wx.Frame):
+
+
+    def __init__(self,*args, **kw):
+        super(AnswerChoice, self).__init__(*args, **kw)
+        self.Center()
+        self.pnl = wx.Panel(self)
+        self.vbox = wx.BoxSizer(wx.VERTICAL)
+        self.topic = globalVariable.get_current()
+
+        logo = wx.StaticText(self.pnl, label="问卷填写")
+        font = logo.GetFont()
+        font.PointSize += 30
+        font = font.Bold()
+        logo.SetFont(font)
+        self.vbox.Add(logo, proportion=0, flag=wx.FIXED_MINSIZE | wx.TOP | wx.CENTER, border=5)
+
+        notice = wx.StaticBox(self.pnl, label="题目")
+        self.vbox.Add(notice, proportion=0, flag=wx.FIXED_MINSIZE | wx.TOP | wx.CENTER, border=30)
+
+
+        self.question = wx.StaticText(self.pnl, -1,self.topic[0],size = (700, 50), style=wx.ALIGN_CENTER)  # 创建一个文本控件
+        self.choiceA = wx.StaticText(self.pnl, -1, self.topic[1], size=(700, 50), style=wx.ALIGN_CENTER)  # 创建一个文本控件
+        self.choiceB = wx.StaticText(self.pnl, -1, self.topic[2], size=(700, 50), style=wx.ALIGN_CENTER)  # 创建一个文本控件
+        self.choiceC = wx.StaticText(self.pnl, -1, self.topic[3], size=(700, 50), style=wx.ALIGN_CENTER)  # 创建一个文本控件
+        self.choiceD = wx.StaticText(self.pnl, -1, self.topic[4], size=(700, 50), style=wx.ALIGN_CENTER)  # 创建一个文本控件
+        font = wx.Font(wx.FontInfo(15).Bold() )
+        self.question.SetFont(font)
+        self.choiceA.SetFont(font)
+        self.choiceB.SetFont(font)
+        self.choiceC.SetFont(font)
+        self.choiceD.SetFont(font)
+
+
+        que = wx.StaticBox(self.pnl, label="问 题")
+        cha = wx.StaticBox(self.pnl, label="选项A")
+        chb = wx.StaticBox(self.pnl, label="选项B")
+        chc = wx.StaticBox(self.pnl, label="选项C")
+        chd = wx.StaticBox(self.pnl, label="选项D")
+
+        hobox_que = wx.StaticBoxSizer(que, wx.HORIZONTAL)
+        hobox_cha = wx.StaticBoxSizer(cha, wx.HORIZONTAL)
+        hobox_chb = wx.StaticBoxSizer(chb, wx.HORIZONTAL)
+        hobox_chc = wx.StaticBoxSizer(chc, wx.HORIZONTAL)
+        hobox_chd = wx.StaticBoxSizer(chd, wx.HORIZONTAL)
+
+        hobox_que.Add(self.question, 0, wx.EXPAND | wx.TOP, 5)
+        hobox_cha.Add(self.choiceA, 0, wx.EXPAND | wx.TOP, 5)
+        hobox_chb.Add(self.choiceB, 0, wx.EXPAND | wx.TOP, 5)
+        hobox_chc.Add(self.choiceC, 0, wx.EXPAND | wx.TOP, 5)
+        hobox_chd.Add(self.choiceD, 0, wx.EXPAND | wx.TOP, 5)
+
+        self.vbox.Add(hobox_que, 0, wx.CENTER | wx.FIXED_MINSIZE, 5)
+        self.vbox.Add(hobox_cha, 0, wx.CENTER | wx.FIXED_MINSIZE, 5)
+        self.vbox.Add(hobox_chb, 0, wx.CENTER | wx.FIXED_MINSIZE, 5)
+        self.vbox.Add(hobox_chc, 0, wx.CENTER | wx.FIXED_MINSIZE, 5)
+        self.vbox.Add(hobox_chd, 0, wx.CENTER | wx.FIXED_MINSIZE, 5)
+
+
+        choiceList = ['A', 'B', 'C', 'D']
+        self.radioBox = wx.RadioBox(self.pnl, -1, "", wx.DefaultPosition, wx.DefaultSize,choiceList, 4, wx.RA_SPECIFY_COLS)
+        self.radioBox.SetSelection(0)
+        self.vbox.Add(self.radioBox,  proportion=0, flag=wx.FIXED_MINSIZE | wx.TOP | wx.CENTER, border=10)
+
+        self.sure = wx.Button(self.pnl, label="提交", size=(80, 25))
+        self.sure.Bind(wx.EVT_BUTTON, self.Submit)
+        self.vbox.Add(self.sure, 0, wx.CENTER | wx.FIXED_MINSIZE, 5)
+
+        self.pnl.SetSizer(self.vbox)
+
+    def Submit(self, event):
+        selected = self.radioBox.GetSelection()
+        if selected == 0:
+            ans=self.choiceA.GetLabel()
+        if selected==1:
+            ans=self.choiceB.GetLabel()
+        if selected==2:
+            ans=self.choiceC.GetLabel()
+        if selected==3:
+            ans=self.choiceD.GetLabel()
+        globalVariable.append_answer(ans)
+        nextType = globalVariable.next_type()
+        if nextType == -1:
+            self.Close(True)
+        if nextType == 0:
+            operation = AnswerChoice(None ,title="问卷填写", size=(1024, 668))
+            operation.Show()
+            self.Close(True)
+        if nextType == 1:
+            operation = AnswerFill(None,title="问卷填写", size=(1024, 668))
+            operation.Show()
+            self.Close(True)
+
+        #self.question.SetLabel('让我来试试一行能写几个字让我来试试一行能写几个字让我来试试一行能30\n2')
+
+
+class globalVariable:
+
+    answers=[]
+    typesList=[]
+    titlesList=[]
+    count=0
+
+    def __init__(self):
+        pass
+
+    @classmethod
+    def next_type(cls):
+        cls.count += 1
+        if cls.count >= len(cls.typesList):
+            return -1
+        else:
+            return cls.typesList[cls.count]
+
+    @classmethod
+    def get_current(cls):
+        return cls.titlesList[cls.count]
+
+    @classmethod
+    def append_answer(cls,ans):
+        cls.answers.append(ans)
+
+    @classmethod
+    def answer_padding(cls):
+        while len(cls.answers)<20:
+            cls.answers.append(None)
+
+    @classmethod
+    def get_answer(cls):
+        return cls.answers
+
+@permitted_methods(["GET"])
+def answer(request, pollId):
+    questionnaires = Questionnaire.objects.filter(id=pollId)
+    if len(questionnaires) == 0:
+        return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '没有该问卷'},
+                            json_dumps_params={'ensure_ascii': False})
+    choice = Choice.objects.filter(questionnaireId=pollId).order_by('choiceNumber')
+    choices = []
+    for item in choice:
+        choices.append(model_to_dict(item))
+
+    questionnaire = questionnaires[0]
+    questionnaire_dict = model_to_dict(questionnaire)
+    types = []
+    titles = []
+    for i in range(20):
+        field = 'type' + str(i + 1)
+        if questionnaire_dict[field] == 2 or questionnaire_dict[field] == None:
+            break
+        else:
+            types.append(questionnaire_dict[field])
+            if questionnaire_dict[field] == 1:
+                field = 'k' + str(i + 1)
+                titles.append(questionnaire_dict[field])
+            if questionnaire_dict[field] == 0:
+                field = 'k' + str(i + 1)
+                title = [questionnaire_dict[field]]
+                cs = {}
+                for item in choices:
+                    if item['choiceNumber'] == i + 1:
+                        title.append(item['A'])
+                        title.append(item['B'])
+                        title.append(item['C'])
+                        title.append(item['D'])
+                        break
+                titles.append(title)
+    globalVariable.count=0
+    globalVariable.answers=[]
+    globalVariable.typesList=types
+    globalVariable.titlesList=titles
+
+    if len(types) > 0:
+        app = wx.App()
+        if types[0] == 0:
+            operate = AnswerChoice(None, title="填写问卷", size=(1024, 668))
+            operate.Show()
+        if types[0] == 1:
+            operate = AnswerFill(None, title="填写问卷", size=(1024, 668))
+            operate.Show()
+        app.MainLoop()
+
+    globalVariable.answer_padding()
+    answers = globalVariable.get_answer()
+    Record.objects.create(xh=1, questionnaireId=pollId, v1=answers[0], v2=answers[1], v3=answers[2], v4=answers[3],
+                          v5=answers[4], v6=answers[5], v7=answers[6], v8=answers[7], v9=answers[8], v10=answers[9],
+                          v11=answers[10], v12=answers[11], v13=answers[12], v14=answers[13], v15=answers[14],
+                          v16=answers[15], v17=answers[16], v18=answers[17], v19=answers[18], v20=answers[19])
+    ret = {'message': 'ok'}
+    return JsonResponse(data=ret, json_dumps_params={'ensure_ascii': False})
+
+
+
+
+
+
