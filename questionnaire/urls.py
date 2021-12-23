@@ -50,4 +50,5 @@ urlpatterns = [
     url(r'^blacklist_search/(.+)$', poll_views.blacklist_search),
     url(r'^dynamic_filtering/(.+)$',poll_views.dynamic_filtering),
     url(r'^answer_poll/(.+)$',poll_views.answer),
+    url(r'^create_poll',poll_views.create),
 ]

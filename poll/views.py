@@ -14,6 +14,7 @@ from django.http import HttpResponse
 from openpyxl import Workbook
 from openpyxl import load_workbook
 import wx
+import wx.grid
 
 
 @permitted_methods(["GET"])
@@ -591,6 +592,58 @@ def fileDown(request,questionnaireId):
                 j = j + 1
     return response
 
+class AnswerUserLogin(wx.Frame):
+
+    def __init__(self, *args, **kw):
+        super(AnswerUserLogin, self).__init__(*args, **kw)
+        self.Center()
+        self.pnl = wx.Panel(self)
+        self.LoginInterface()
+
+    def LoginInterface(self):
+        self.vbox = wx.BoxSizer(wx.VERTICAL)
+        logo = wx.StaticText(self.pnl, label="问卷系统")
+        font = logo.GetFont()
+        font.PointSize += 30
+        font = font.Bold()
+        logo.SetFont(font)
+        self.vbox.Add(logo, proportion=0, flag=wx.FIXED_MINSIZE | wx.TOP | wx.CENTER, border=150)
+
+        Id = wx.StaticBox(self.pnl, label="学号")
+        hobox = wx.StaticBoxSizer(Id, wx.HORIZONTAL)
+        self.userId = wx.TextCtrl(self.pnl, size=(300, 25))
+        hobox.Add(self.userId, 0, wx.EXPAND | wx.BOTTOM, 5)
+        self.vbox.Add(hobox,  proportion=0, flag=wx.FIXED_MINSIZE | wx.TOP | wx.CENTER, border=20)
+
+        login_button = wx.Button(self.pnl, label="登录", size=(80, 25))
+        login_button.Bind(wx.EVT_BUTTON, self.LoginButton)
+        self.vbox.Add(login_button, proportion=0, flag=wx.FIXED_MINSIZE | wx.TOP | wx.CENTER, border=20)
+
+        self.pnl.SetSizer(self.vbox)
+
+    def LoginButton(self, event):
+        userId=self.userId.GetValue()
+        ret=Student.objects.filter(xh=userId)
+        if len(ret)==0:
+            warning=wx.StaticText(self.pnl, label="学号错误")
+            warning.SetForegroundColour(wx.RED)
+            self.vbox.Add(warning, proportion=0, flag=wx.FIXED_MINSIZE | wx.TOP | wx.CENTER, border=20)
+        else:
+            globalVariable.user_id=userId
+            if globalVariable.typesList[0] == 0:
+                operate = AnswerChoice(None, title="填写问卷", size=(1024, 668))
+                operate.Show()
+            if globalVariable.typesList[0] == 1:
+                operate = AnswerFill(None, title="填写问卷", size=(1024, 668))
+                operate.Show()
+            self.Close(True)
+
+def string_after_deal(topic):
+    length = len(topic)
+    if length > 25:
+        ret = topic[0:25] + '\n' + topic[25:length]
+    return ret
+
 class AnswerFill(wx.Frame):
     def __init__(self,*args, **kw):
         super(AnswerFill, self).__init__(*args, **kw)
@@ -607,17 +660,29 @@ class AnswerFill(wx.Frame):
         logo.SetFont(font)
         self.vbox.Add(logo, proportion=0, flag=wx.FIXED_MINSIZE | wx.TOP | wx.CENTER, border=50)
 
+        notice = wx.StaticBox(self.pnl,
+                              label="题目" + str(globalVariable.count + 1) + '/' + str(len(globalVariable.typesList)))
+        self.vbox.Add(notice, proportion=0, flag=wx.FIXED_MINSIZE | wx.TOP | wx.CENTER, border=30)
+
+
         que = wx.StaticBox(self.pnl, label="问 题")
-        self.question = wx.StaticText(self.pnl, -1, self.topic[0], size=(700, 100), style=wx.ALIGN_CENTER)  # 创建一个文本控件
+        hbox = wx.StaticBoxSizer(que, wx.HORIZONTAL)
+        self.question = wx.StaticText(self.pnl, -1, string_after_deal(self.topic[0]), size=(700, 100), style=wx.ALIGN_CENTER)
         font = wx.Font(wx.FontInfo(15).Bold())
         self.question.SetFont(font)
-        hbox = wx.StaticBoxSizer(que, wx.HORIZONTAL)
         hbox.Add(self.question, 0, wx.EXPAND | wx.TOP, 5)
-        self.vbox.Add(hbox, proportion=0, flag=wx.FIXED_MINSIZE | wx.TOP | wx.CENTER, border=20)
+        self.vbox.Add(hbox, proportion=0, flag=wx.FIXED_MINSIZE | wx.TOP | wx.CENTER, border=50)
 
-        self.multiText = wx.TextCtrl(self.pnl, -1, "", size=(700, 200), style=wx.TE_MULTILINE)
+
+        warning = wx.StaticText(self.pnl, -1, '回答最多填写50个字', size=(200, 50), style=wx.ALIGN_CENTER)
+        self.vbox.Add(warning, proportion=0, flag=wx.FIXED_MINSIZE | wx.TOP | wx.CENTER, border=10)
+
+        self.multiText = wx.TextCtrl(self.pnl, -1, "", size=(700, 100), style=wx.TE_MULTILINE)
         self.multiText.SetInsertionPoint(0)
-        self.vbox.Add(self.multiText, proportion=0, flag=wx.FIXED_MINSIZE | wx.TOP | wx.CENTER, border=30)
+        self.multiText.SetMaxLength(50)
+        font = wx.Font(wx.FontInfo(15))
+        self.multiText.SetFont(font)
+        self.vbox.Add(self.multiText, proportion=0, flag=wx.FIXED_MINSIZE | wx.TOP | wx.CENTER, border=10)
 
         self.sure = wx.Button(self.pnl, label="提交", size=(80, 25))
         self.sure.Bind(wx.EVT_BUTTON,self.submit)
@@ -663,15 +728,14 @@ class AnswerChoice(wx.Frame):
         logo.SetFont(font)
         self.vbox.Add(logo, proportion=0, flag=wx.FIXED_MINSIZE | wx.TOP | wx.CENTER, border=5)
 
-        notice = wx.StaticBox(self.pnl, label="题目")
+        notice = wx.StaticBox(self.pnl, label="题目"+str(globalVariable.count+1)+'/'+str(len(globalVariable.typesList)))
         self.vbox.Add(notice, proportion=0, flag=wx.FIXED_MINSIZE | wx.TOP | wx.CENTER, border=30)
 
-
-        self.question = wx.StaticText(self.pnl, -1,self.topic[0],size = (700, 50), style=wx.ALIGN_CENTER)  # 创建一个文本控件
-        self.choiceA = wx.StaticText(self.pnl, -1, self.topic[1], size=(700, 50), style=wx.ALIGN_CENTER)  # 创建一个文本控件
-        self.choiceB = wx.StaticText(self.pnl, -1, self.topic[2], size=(700, 50), style=wx.ALIGN_CENTER)  # 创建一个文本控件
-        self.choiceC = wx.StaticText(self.pnl, -1, self.topic[3], size=(700, 50), style=wx.ALIGN_CENTER)  # 创建一个文本控件
-        self.choiceD = wx.StaticText(self.pnl, -1, self.topic[4], size=(700, 50), style=wx.ALIGN_CENTER)  # 创建一个文本控件
+        self.question = wx.StaticText(self.pnl, -1,string_after_deal(self.topic[0]),size = (700, 50), style=wx.ALIGN_CENTER)  # 创建一个文本控件
+        self.choiceA = wx.StaticText(self.pnl, -1, string_after_deal(self.topic[1]), size=(700, 50), style=wx.ALIGN_CENTER)  # 创建一个文本控件
+        self.choiceB = wx.StaticText(self.pnl, -1, string_after_deal(self.topic[2]), size=(700, 50), style=wx.ALIGN_CENTER)  # 创建一个文本控件
+        self.choiceC = wx.StaticText(self.pnl, -1, string_after_deal(self.topic[3]), size=(700, 50), style=wx.ALIGN_CENTER)  # 创建一个文本控件
+        self.choiceD = wx.StaticText(self.pnl, -1, string_after_deal(self.topic[4]), size=(700, 50), style=wx.ALIGN_CENTER)  # 创建一个文本控件
         font = wx.Font(wx.FontInfo(15).Bold() )
         self.question.SetFont(font)
         self.choiceA.SetFont(font)
@@ -739,8 +803,6 @@ class AnswerChoice(wx.Frame):
             operation.Show()
             self.Close(True)
 
-        #self.question.SetLabel('让我来试试一行能写几个字让我来试试一行能写几个字让我来试试一行能30\n2')
-
 
 class globalVariable:
 
@@ -748,6 +810,7 @@ class globalVariable:
     typesList=[]
     titlesList=[]
     count=0
+    user_id=None
 
     def __init__(self):
         pass
@@ -762,6 +825,7 @@ class globalVariable:
 
     @classmethod
     def get_current(cls):
+        print( cls.titlesList[cls.count])
         return cls.titlesList[cls.count]
 
     @classmethod
@@ -777,6 +841,11 @@ class globalVariable:
     def get_answer(cls):
         return cls.answers
 
+def End():
+    ret = wx.MessageBox('您已完成问卷\n点击确认提交', 'warning',wx.OK | wx.CANCEL)
+    return ret
+
+#回答问卷接口
 @permitted_methods(["GET"])
 def answer(request, pollId):
     questionnaires = Questionnaire.objects.filter(id=pollId)
@@ -800,11 +869,10 @@ def answer(request, pollId):
             types.append(questionnaire_dict[field])
             if questionnaire_dict[field] == 1:
                 field = 'k' + str(i + 1)
-                titles.append(questionnaire_dict[field])
-            if questionnaire_dict[field] == 0:
+                title=[questionnaire_dict[field]]
+            elif questionnaire_dict[field] == 0:
                 field = 'k' + str(i + 1)
                 title = [questionnaire_dict[field]]
-                cs = {}
                 for item in choices:
                     if item['choiceNumber'] == i + 1:
                         title.append(item['A'])
@@ -812,7 +880,7 @@ def answer(request, pollId):
                         title.append(item['C'])
                         title.append(item['D'])
                         break
-                titles.append(title)
+            titles.append(title)
     globalVariable.count=0
     globalVariable.answers=[]
     globalVariable.typesList=types
@@ -820,22 +888,385 @@ def answer(request, pollId):
 
     if len(types) > 0:
         app = wx.App()
-        if types[0] == 0:
-            operate = AnswerChoice(None, title="填写问卷", size=(1024, 668))
-            operate.Show()
-        if types[0] == 1:
-            operate = AnswerFill(None, title="填写问卷", size=(1024, 668))
-            operate.Show()
+        operate=AnswerUserLogin(None,title="填写问卷", size=(1100, 700))
+        operate.Show()
         app.MainLoop()
 
-    globalVariable.answer_padding()
-    answers = globalVariable.get_answer()
-    Record.objects.create(xh=1, questionnaireId=pollId, v1=answers[0], v2=answers[1], v3=answers[2], v4=answers[3],
-                          v5=answers[4], v6=answers[5], v7=answers[6], v8=answers[7], v9=answers[8], v10=answers[9],
-                          v11=answers[10], v12=answers[11], v13=answers[12], v14=answers[13], v15=answers[14],
-                          v16=answers[15], v17=answers[16], v18=answers[17], v19=answers[18], v20=answers[19])
+    if len(globalVariable.answers)<len(globalVariable.typesList):
+        ret = {'message': 'cancel'}
+        return JsonResponse(data=ret, json_dumps_params={'ensure_ascii': False})
+    retValue = End()
+    if retValue == wx.OK:
+        globalVariable.answer_padding()
+        answers = globalVariable.get_answer()
+        Record.objects.create(xh=globalVariable.user_id, questionnaireId=pollId, v1=answers[0], v2=answers[1], v3=answers[2], v4=answers[3],
+                              v5=answers[4], v6=answers[5], v7=answers[6], v8=answers[7], v9=answers[8], v10=answers[9],
+                              v11=answers[10], v12=answers[11], v13=answers[12], v14=answers[13], v15=answers[14],
+                              v16=answers[15], v17=answers[16], v18=answers[17], v19=answers[18], v20=answers[19])
+        ret = {'message': 'complete'}
+        return JsonResponse(data=ret, json_dumps_params={'ensure_ascii': False})
+    else:
+        ret = {'message': 'cancel'}
+        return JsonResponse(data=ret, json_dumps_params={'ensure_ascii': False})
+
+
+class CreateUserLogin(wx.Frame):
+
+    def __init__(self, *args, **kw):
+        super(CreateUserLogin, self).__init__(*args, **kw)
+        self.Center()
+        self.pnl = wx.Panel(self)
+        self.vbox = wx.BoxSizer(wx.VERTICAL)
+        self.LoginInterface()
+
+
+    def LoginInterface(self):
+
+        logo = wx.StaticText(self.pnl, label="问卷系统")
+        font = logo.GetFont()
+        font.PointSize += 30
+        font = font.Bold()
+        logo.SetFont(font)
+        self.vbox.Add(logo, proportion=0, flag=wx.FIXED_MINSIZE | wx.TOP | wx.CENTER, border=150)
+
+        Id = wx.StaticBox(self.pnl, label="学号")
+        hobox = wx.StaticBoxSizer(Id, wx.HORIZONTAL)
+        self.userId = wx.TextCtrl(self.pnl, size=(300, 25))
+        hobox.Add(self.userId, 0, wx.EXPAND | wx.BOTTOM, 5)
+        self.vbox.Add(hobox,  proportion=0, flag=wx.FIXED_MINSIZE | wx.TOP | wx.CENTER, border=20)
+
+        login_button = wx.Button(self.pnl, label="登录", size=(80, 25))
+        login_button.Bind(wx.EVT_BUTTON, self.LoginButton)
+        self.vbox.Add(login_button, proportion=0, flag=wx.FIXED_MINSIZE | wx.TOP | wx.CENTER, border=20)
+
+        self.pnl.SetSizer(self.vbox)
+
+    def LoginButton(self, event):
+        userId = self.userId.GetValue()
+        ret = Student.objects.filter(xh=userId)
+        if len(ret) == 0:
+            warning = wx.StaticText(self.pnl, label="学号错误")
+            warning.SetForegroundColour(wx.RED)
+            self.vbox.Add(warning, proportion=0, flag=wx.FIXED_MINSIZE | wx.TOP | wx.CENTER, border=20)
+        else:
+            Total.user_id=userId
+            operation = UserOperation(None, title="问卷系统", size=(1100, 700))
+            operation.Show()
+            self.Close(True)
+
+
+class UserOperation(wx.Frame):
+
+    def __init__(self, *args, **kw):
+        super(UserOperation, self).__init__(*args, **kw)
+        self.Center()
+        self.pnl = wx.Panel(self)
+        self.vbox = wx.BoxSizer(wx.VERTICAL)
+
+        logo = wx.StaticText(self.pnl, label="设计问卷")
+        self.vbox.Add(logo, proportion=0, flag=wx.FIXED_MINSIZE | wx.TOP | wx.CENTER, border=5)
+
+        buttonBox = wx.StaticBox(self.pnl, label="")
+        buttonRow = wx.StaticBoxSizer(buttonBox, wx.HORIZONTAL)
+
+        choice_button = wx.Button(self.pnl, id=10, label="选择题", size=(100, 50))
+        fill_button = wx.Button(self.pnl, id=11, label="填空题", size=(100, 50))
+        check_button = wx.Button(self.pnl, id=12, label="查看问卷", size=(100, 50))
+        submit_button = wx.Button(self.pnl, id=13, label="提交问卷", size=(100, 50))
+
+        buttonRow.Add(choice_button, 0, wx.EXPAND | wx.BOTTOM, 10)
+        buttonRow.Add(fill_button, 0, wx.EXPAND | wx.BOTTOM, 10)
+        buttonRow.Add(check_button, 0, wx.EXPAND | wx.BOTTOM, 10)
+        buttonRow.Add(submit_button, 0, wx.EXPAND | wx.BOTTOM, 10)
+        self.vbox.Add(buttonRow, proportion=0, flag=wx.FIXED_MINSIZE | wx.TOP | wx.CENTER, border=0)
+
+        self.Bind(wx.EVT_BUTTON, self.ClickButton, id=10, id2=13)
+
+        window = wx.StaticBox(self.pnl, label="",size=(800,500))
+        self.window_box_sizer = wx.StaticBoxSizer(window ,wx.VERTICAL)
+        self.vbox.Add(self.window_box_sizer, proportion=0, flag=wx.CENTER)
+
+        self.pnl.SetSizer(self.vbox)
+
+    def ClickButton(self, event):
+        source_id = event.GetId()
+        if source_id == 10:
+            print("choice_button！")
+            choice_interfece = ChoiceOp(None, title="设计选择题", size=(1024, 668))
+            choice_interfece.Show()
+            self.Close(True)
+        elif source_id == 11:
+            print("fill_button！")
+            fill_button = FillOp(None, title="设计填空题", size=(1024, 668))
+            fill_button.Show()
+            self.Close(True)
+        elif source_id == 12:
+            print("check_button！")
+            check_button = CheckOp(None, title="查看问卷题目", size=(1024, 668))
+            check_button.Show()
+            self.Close(True)
+        elif source_id==13:
+            if submit_to_database()==wx.OK:
+                self.Destroy()
+
+class Total():
+    total_title_number=0
+    total_tiltes=[]
+    user_id=None
+    def __init__(self):
+        pass
+
+    @classmethod
+    def add_title(cls,title):
+        cls.total_title_number+=1
+        cls.total_tiltes.append(title)
+
+    @classmethod
+    def get_content(cls,row,col):
+        if col==0:
+            if len(cls.total_tiltes[row])==1:
+                return'填空'
+            elif len(cls.total_tiltes[row])!=1:
+                return'选择'
+        elif col<=len(cls.total_tiltes[row]):
+            return cls.total_tiltes[row][col-1]
+        else:
+            return''
+
+
+
+
+class ChoiceOp(UserOperation):
+    def __init__(self, *args, **kw):
+        super(ChoiceOp, self).__init__(*args, **kw)
+
+        warning = wx.StaticText(self.pnl, -1, '题目和选项在50字以内', size=(100, 20), style=wx.ALIGN_CENTER)
+        self.window_box_sizer.Add(warning, 0, wx.CENTER | wx.TOP | wx.FIXED_MINSIZE, 5)
+
+        self.title = wx.TextCtrl(self.pnl, size=(700, 50))
+        self.A = wx.TextCtrl(self.pnl, size=(700, 50))
+        self.B = wx.TextCtrl(self.pnl, size=(700, 50))
+        self.C = wx.TextCtrl(self.pnl, size=(700, 50))
+        self.D = wx.TextCtrl(self.pnl, size=(700, 50))
+        self.title.SetMaxLength(50)
+        self.A.SetMaxLength(50)
+        self.B.SetMaxLength(50)
+        self.C.SetMaxLength(50)
+        self.D.SetMaxLength(50)
+        self.add = wx.Button(self.pnl,label="确认添加",size=(80,25))
+        self.add.Bind(wx.EVT_BUTTON, self.Add)
+
+        title_box = wx.StaticBox(self.pnl, label="题 目")
+        Abox = wx.StaticBox(self.pnl, label="选择A")
+        Bbox = wx.StaticBox(self.pnl, label="选择B")
+        Cbox = wx.StaticBox(self.pnl, label="选择C")
+        Dbox = wx.StaticBox(self.pnl, label="选择D")
+
+        hbox_title = wx.StaticBoxSizer(title_box, wx.HORIZONTAL)
+        hbox_A = wx.StaticBoxSizer(Abox, wx.HORIZONTAL)
+        hbox_B = wx.StaticBoxSizer(Bbox, wx.HORIZONTAL)
+        hbox_C = wx.StaticBoxSizer(Cbox, wx.HORIZONTAL)
+        hbox_D = wx.StaticBoxSizer(Dbox, wx.HORIZONTAL)
+
+        hbox_title.Add(self.title, 0, wx.EXPAND | wx.BOTTOM, 5)
+        hbox_A.Add(self.A, 0, wx.EXPAND | wx.BOTTOM, 5)
+        hbox_B.Add(self.B, 0, wx.EXPAND | wx.BOTTOM, 5)
+        hbox_C.Add(self.C, 0, wx.EXPAND | wx.BOTTOM, 5)
+        hbox_D.Add(self.D, 0, wx.EXPAND | wx.BOTTOM, 5)
+
+        self.window_box_sizer.Add(hbox_title, 0, wx.CENTER | wx.TOP | wx.FIXED_MINSIZE, 5)
+        self.window_box_sizer.Add(hbox_A, 0, wx.CENTER | wx.TOP | wx.FIXED_MINSIZE, 5)
+        self.window_box_sizer.Add(hbox_B, 0, wx.CENTER | wx.TOP | wx.FIXED_MINSIZE, 5)
+        self.window_box_sizer.Add(hbox_C, 0, wx.CENTER | wx.TOP | wx.FIXED_MINSIZE, 5)
+        self.window_box_sizer.Add(hbox_D, 0, wx.CENTER | wx.TOP | wx.FIXED_MINSIZE, 5)
+        self.window_box_sizer.Add(self.add, 0, wx.CENTER | wx.TOP | wx.FIXED_MINSIZE, 5)
+
+    def ClickButton(self, event):
+        source_id = event.GetId()
+        if source_id == 10:
+            pass
+        elif source_id == 11:
+            print("fill_button！")
+            fill_button = FillOp(None, title="设计填空题", size=(1024, 668))
+            fill_button.Show()
+            self.Close(True)
+        elif source_id == 12:
+            print("check_button！")
+            check_button = CheckOp(None, title="查看问卷题目", size=(1024, 668))
+            check_button.Show()
+            self.Close(True)
+        elif source_id==13:
+            if submit_to_database() == wx.OK:
+                self.Destroy()
+
+
+    def Add(self, event):
+        Total.add_title([self.title.GetValue(),self.A.GetValue(),self.B.GetValue(),self.C.GetValue(),self.D.GetValue()])
+        print([self.title.GetValue(),self.A.GetValue(),self.B.GetValue(),self.C.GetValue(),self.D.GetValue()])
+        self.title.SetValue('')
+        self.A.SetValue('')
+        self.B.SetValue('')
+        self.C.SetValue('')
+        self.D.SetValue('')
+
+
+class FillOp(UserOperation):
+    def __init__(self, *args, **kw):
+        super(FillOp, self).__init__(*args, **kw)
+        self.title = wx.TextCtrl(self.pnl, pos=(407, 78), size=(700, 200))
+        self.title.SetMaxLength(50)
+
+        self.add = wx.Button(self.pnl, label="确认添加", pos=(625, 78), size=(80, 25))
+        self.add.Bind(wx.EVT_BUTTON, self.Add)
+
+        title_box = wx.StaticBox(self.pnl, label="请输入题目")
+
+        hobox = wx.StaticBoxSizer(title_box, wx.HORIZONTAL)
+
+        hobox.Add(self.title, 0, wx.EXPAND | wx.BOTTOM, 5)
+
+        warning = wx.StaticText(self.pnl, -1, '题目在50字以内', size=(100, 20), style=wx.ALIGN_CENTER)
+        self.window_box_sizer.Add(warning, 0, wx.CENTER | wx.TOP | wx.FIXED_MINSIZE, 5)
+        self.window_box_sizer.Add(hobox, 0, wx.CENTER | wx.TOP | wx.FIXED_MINSIZE, 5)
+        self.window_box_sizer.Add(self.add, 0, wx.CENTER | wx.TOP | wx.FIXED_MINSIZE, 5)
+
+    def ClickButton(self, event):
+        source_id = event.GetId()
+        if source_id == 10:
+            print("choice_button！")
+            choice_interfece = ChoiceOp(None, title="设计选择题", size=(1024, 668))
+            choice_interfece.Show()
+            self.Close(True)
+        elif source_id == 11:
+            pass
+        elif source_id == 12:
+            print("check_button！")
+            check_button = CheckOp(None, title="查看问卷题目", size=(1024, 668))
+            check_button.Show()
+            self.Close(True)
+        elif source_id == 13:
+            if submit_to_database() == wx.OK:
+                self.Destroy()
+
+
+    def Add(self, event):
+        Total.add_title([self.title.GetValue()])
+        print([self.title.GetValue()])
+        self.title.SetValue('')
+
+
+
+class CheckOp(UserOperation):
+    def __init__(self, *args, **kw):
+        super(CheckOp, self).__init__(*args, **kw)
+        self.titles_grid = self.CreateTitlesGrid()
+        self.window_box_sizer.Add(self.titles_grid, 0, wx.CENTER | wx.TOP, 10)
+        self.Bind(wx.grid.EVT_GRID_SELECT_CELL, self.select,self.titles_grid)
+
+        self.text=wx.TextCtrl(self.pnl, size=(700, 50))
+        self.vbox.Add(self.text, proportion=0, flag=wx.FIXED_MINSIZE | wx.TOP | wx.CENTER, border=5)
+
+        # button_row=wx.StaticBox(self.pnl, label="操作")
+        # self.delete_button=wx.Button(self.pnl, label="删除此题",size=(80, 25))
+        # self.update_button=wx.Button(self.pnl, label="修改此题",size=(80, 25))
+        # self.delete_button.Bind(wx.EVT_BUTTON, self.delete)
+        # self.update_button.Bind(wx.EVT_BUTTON, self.update)
+        # hbox = wx.StaticBoxSizer(button_row, wx.HORIZONTAL)
+        # hbox.Add(self.delete_button,0,wx.EXPAND | wx.BOTTOM|wx.CENTER, 5)
+        # hbox.Add(self.update_button, 0, wx.EXPAND | wx.BOTTOM|wx.CENTER, 5)
+        # self.vbox.Add(hbox, proportion=0, flag=wx.FIXED_MINSIZE | wx.TOP | wx.CENTER, border=0)
+
+
+    def ClickButton(self, event):
+        source_id = event.GetId()
+        if source_id == 10:
+            print("choice_button！")
+            choice_interfece = ChoiceOp(None, title="设计选择题", size=(1024, 668))
+            choice_interfece.Show()
+            self.Close(True)
+        elif source_id == 11:
+            print("fill_button！")
+            fill_button = FillOp(None, title="设计填空题", size=(1024, 668))
+            fill_button.Show()
+            self.Close(True)
+        elif source_id == 12:
+            pass
+        elif source_id==13:
+            if(submit_to_database()==wx.OK):
+                self.Destroy()
+
+    def CreateTitlesGrid(self):
+        titles_gird = wx.grid.Grid(self.pnl,0,  size=(850,350),style=wx.WANTS_CHARS, name='')
+        lines=Total.total_title_number
+        titles_gird.CreateGrid(lines, 6)
+        column_names = ("题型","题目", "A", "B", "C", "D")
+        for i in range(6):
+            titles_gird.SetColLabelValue(i,column_names[i])
+        titles_gird.SetCornerLabelValue('题号')
+        titles_gird.SetDefaultColSize(140, resizeExistingCols=False)
+        titles_gird.SetColSize(0,50)
+        titles_gird.SetDefaultRowSize(20, resizeExistingRows=False)
+        for i in range(lines):
+            for j in range(6):
+                titles_gird.SetCellValue(row=i,col=j,s=Total.get_content(i,j))
+        return titles_gird
+
+    def select(self, event):
+        c=event.GetCol()
+        r=event.GetRow()
+        value=self.titles_grid.GetCellValue(row=r,col=c)
+        print(value)
+        self.text.SetValue(Total.get_content(r,c))
+
+def submit_to_database():
+    if(Total.total_title_number==0):
+        ret = wx.MessageBox('尚未创建题目\n是否确认提交', 'warning',wx.OK | wx.CANCEL)
+        if ret==wx.OK:
+            Questionnaire.objects.create(status=-1, oneoff=1, title='no', scope=1, creatorId=Total.user_id)
+    else:
+        ret = wx.MessageBox('是否确认提交', 'warning',wx.OK | wx.CANCEL)
+        if ret==wx.OK:
+            types = []
+            for i in range(Total.total_title_number):
+                if len(Total.total_tiltes[i]) == 1:
+                    types.append(1)
+                else:
+                    types.append(0)
+            for i in range(Total.total_title_number,20):
+                Total.add_title([None])
+                types.append(2)
+            Questionnaire.objects.create(status=-1, oneoff=1, title='no', scope=1, creatorId=Total.user_id,
+                                        k1=Total.total_tiltes[0][0],k2=Total.total_tiltes[1][0],k3=Total.total_tiltes[2][0],
+                                        k4=Total.total_tiltes[3][0],k5=Total.total_tiltes[4][0],k6=Total.total_tiltes[5][0],
+                                        k7=Total.total_tiltes[6][0],k8=Total.total_tiltes[7][0],k9=Total.total_tiltes[8][0],
+                                        k10=Total.total_tiltes[9][0],k11=Total.total_tiltes[10][0],k12=Total.total_tiltes[11][0],
+                                        k13=Total.total_tiltes[12][0],k14=Total.total_tiltes[13][0],k15=Total.total_tiltes[14][0],
+                                        k16=Total.total_tiltes[15][0],k17=Total.total_tiltes[16][0],k18=Total.total_tiltes[17][0],
+                                        k19=Total.total_tiltes[18][0],k20=Total.total_tiltes[19][0],type1=types[0],type2=types[1],
+                                        type3=types[2],type4=types[3],type5=types[4],type6=types[5],type7=types[6],type8=types[7],
+                                        type9=types[8],type10=types[9],type11=types[10],type12=types[11],type13=types[12],
+                                        type14=types[13],type15=types[14],type16=types[15],type17=types[16],type18=types[17],
+                                         type19=types[18],type20=types[19],
+)
+            questionnaires=Questionnaire.objects.filter(creatorId=Total.user_id).order_by('createTime')
+            questionnaire =model_to_dict(questionnaires[len(questionnaires)-1])
+            for i in range(Total.total_title_number):
+                if len(Total.total_tiltes[i])!=1:
+                    Choice.objects.create(questionnaireId=questionnaire['id'],choiceNumber=i+1,A=Total.total_tiltes[i][1],
+                                          B=Total.total_tiltes[i][2],C=Total.total_tiltes[i][3],D=Total.total_tiltes[i][4])
+    return ret
+
+
+#创建问卷接口
+@permitted_methods(["GET"])
+def create(request):
+    app = wx.App()
+    operate = CreateUserLogin(None, title="填写问卷", size=(1100, 700))
+    operate.Show()
+    app.MainLoop()
     ret = {'message': 'ok'}
     return JsonResponse(data=ret, json_dumps_params={'ensure_ascii': False})
+
 
 
 
