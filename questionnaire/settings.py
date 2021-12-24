@@ -81,7 +81,7 @@ DATABASES = {
         'NAME': 'questionnaire',
         'USER': 'xgb_tang',
         'PASSWORD': 'pl,okm123@Tang',
-        'HOST': '1.15.30.214',
+        'HOST': '127.0.0.1',
         'PORT': '3306',
         'OPTIONS': {'isolation_level': None} #添加这一行
     }
