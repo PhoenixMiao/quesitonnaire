@@ -79,9 +79,9 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'questionnaire',
-        'USER': 'xgb_tang',
-        'PASSWORD': 'pl,okm123@Tang',
-        'HOST': '127.0.0.1',
+        'USER': 'root',
+        'PASSWORD': 'abc123400197',
+        'HOST': '1.15.30.214',
         'PORT': '3306',
         'OPTIONS': {'isolation_level': None} #添加这一行
     }
