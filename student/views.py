@@ -87,7 +87,7 @@ def student_import(request):
         for i in range(0,10):
             stu_mes[title[i]] = sheet.cell(row=j,column=i+1).value
         relations2 = Student.objects.filter(xh=stu_mes.get("xh"))
-        if len(relations2) >0 :
+        if len(relations2) >0:
             #return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '该学生已存在'},json_dumps_params={'ensure_ascii': False})
             continue
         if stu_mes.get("xh")==None or stu_mes.get("name")==None or stu_mes.get("xq")==None or stu_mes.get("sfzx")==None or stu_mes.get("cc")==None or stu_mes.get("glyx")==None or stu_mes.get("instructor_name")==None or stu_mes.get("instructor_num")==None:

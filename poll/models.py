@@ -117,7 +117,7 @@ class HistoryRecord(models.Model):
 
 
 class Whitelist(models.Model):
-    questionnaireId = models.IntegerField(default=0, null=False)  # 问卷id
+    questionnaireId = models.CharField(max_length=30, default="", null=False)  # 问卷id
     xh = models.CharField(max_length=30, default="", null=True)  # 学号
     createTime = models.DateTimeField(auto_now_add=True)
 
@@ -126,9 +126,8 @@ class Whitelist(models.Model):
 
 
 class Choice(models.Model):
-    questionnaireId = models.IntegerField(default=0, null=False)  # 问卷id
-    Id = models.IntegerField(default=0,null=False)
-    choiceNumber = models.IntegerField(default=0, null=False)
+    questionnaireId = models.CharField(max_length=30, default="", null=False)  # 问卷id
+    choiceNumber = models.IntegerField(default=0, null=False) #问题id
     A = models.CharField(max_length=200, default='', null=True)
     B = models.CharField(max_length=200, default='', null=True)
     C = models.CharField(max_length=200, default='', null=True)
