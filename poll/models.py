@@ -117,7 +117,7 @@ class HistoryRecord(models.Model):
 
 
 class Whitelist(models.Model):
-    questionnaireId = models.CharField(max_length=30, default="", null=False)  # 问卷id
+    questionnaireId = models.IntegerField(max_length=30, default="", null=False)  # 问卷id
     xh = models.CharField(max_length=30, default="", null=True)  # 学号
     createTime = models.DateTimeField(auto_now_add=True)
 
