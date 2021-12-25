@@ -80,7 +80,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'questionnaire',
         'USER': 'root',
-        'PASSWORD': 'zyl80480',
+        'PASSWORD': '138041478',
         'HOST': '127.0.0.1',
         'PORT': '3306',
         'OPTIONS': {'isolation_level': None} #添加这一行
