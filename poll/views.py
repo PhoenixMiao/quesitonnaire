@@ -15,6 +15,8 @@ from openpyxl import Workbook
 from openpyxl import load_workbook
 import wx
 import wx.grid
+import matplotlib.pyplot as plt
+import numpy as np
 
 
 @permitted_methods(["GET"])
@@ -434,7 +436,6 @@ def history_meta(request,recordId):
     ret = {'message': 'ok','data': mod}
     return JsonResponse(data=ret, json_dumps_params={'ensure_ascii': False})
 
-
 @permitted_methods(["GET"])
 def history_records(request,questionnaireId):
     page_num = request.GET.get('p', 1)
@@ -491,8 +492,6 @@ def dynamic_filtering(request,questionnaireId):
            'data': paginator2dict(paginator_page,
                                   ["xh", "xm", 'glyx', 'xq', ])}
     return JsonResponse(data=ret, json_dumps_params={'ensure_ascii': False})
-
-
 
 
 @permitted_methods(["POST"])
@@ -592,6 +591,58 @@ def fileDown(request,questionnaireId):
                 j = j + 1
     return response
 
+
+@permitted_methods(["GET"])
+def pieChartDraw(request):
+    dict = request_body_serialize_init(request)
+    rec = Record.objects.filter(questionnaireId=dict["questionnaireId"])
+    tmp = Questionnaire.objects.get(id=dict["questionnaireId"])
+    nai = model_to_dict(tmp)
+    if (nai["type" + dict.get("questionId")] != 0):
+        return JsonResponse(status=HTTPStatus.NOT_ACCEPTABLE, data={'error': '该问题不是选择题。'},
+                            json_dumps_params={'ensure_ascii': False})
+    choice = Choice.objects.get(questionnaireId=dict["questionnaireId"], choiceNumber=dict["questionId"])
+    choicedict = model_to_dict(choice)
+    Qname = nai["k" + dict.get("questionId")]
+    qA = choicedict["A"]
+    qB = choicedict["B"]
+    qC = choicedict["C"]
+    qD = choicedict["D"]
+    count1 = 0
+    count2 = 0
+    count3 = 0
+    count4 = 0
+    for i in rec:
+        recs = model_to_dict(i)
+        ans = recs.get("v"+dict.get("questionId"))
+        if ans == qA:
+            count1 += 1
+        if ans == qB:
+            count2 += 1
+        if ans == qC:
+            count3 += 1
+        if ans == qD:
+            count4 += 1
+    total= count1 + count2 + count3 + count4
+    title = nai["title"]
+    if total != 0:
+        perA = count1 / total
+        perB = count2 / total
+        perC = count3 / total
+        perD = count4 / total
+        plt.title(title+"\n"+Qname)
+        labels = ['A:'+qA, 'B:'+qB, 'C:'+qC, 'D:'+qD]
+        sizes = [perA, perB, perC, perD]
+        explode = (0, 0.0, 0, 0)
+        plt.pie(sizes, explode=explode, labels=labels, autopct='%1.1f%%', shadow=False, startangle=90)
+        plt.show()
+        return JsonResponse(data={'message': 'ok'}, json_dumps_params={'ensure_ascii': False})
+    else:
+        return JsonResponse(status=HTTPStatus.NOT_ACCEPTABLE, data={'error': '暂时无答案。'},
+                            json_dumps_params={'ensure_ascii': False})
+
+
+
 class AnswerUserLogin(wx.Frame):
 
     def __init__(self, *args, **kw):
@@ -640,6 +691,7 @@ class AnswerUserLogin(wx.Frame):
 
 def string_after_deal(topic):
     length = len(topic)
+    ret = ""
     if length > 25:
         ret = topic[0:25] + '\n' + topic[25:length]
     return ret

@@ -52,7 +52,7 @@ class Questionnaire(models.Model):
     type20 = models.IntegerField(default=2, null=True)
 
     class Meta:
-        db_table = 'questionaire'
+        db_table = 'questionnaire'
 
 
 class Record(models.Model):
@@ -111,13 +111,12 @@ class HistoryRecord(models.Model):
     v19 = models.CharField(max_length=50, null=True)
     v20 = models.CharField(max_length=50, null=True)
 
-
     class Meta:
         db_table = 'history_record'
 
 
 class Whitelist(models.Model):
-    questionnaireId = models.IntegerField(max_length=30, default="", null=False)  # 问卷id
+    questionnaireId = models.IntegerField(default=0, null=False)  # 问卷id
     xh = models.CharField(max_length=30, default="", null=True)  # 学号
     createTime = models.DateTimeField(auto_now_add=True)
 
@@ -126,8 +125,8 @@ class Whitelist(models.Model):
 
 
 class Choice(models.Model):
-    questionnaireId = models.CharField(max_length=30, default="", null=False)  # 问卷id
-    choiceNumber = models.IntegerField(default=0, null=False) #问题id
+    questionnaireId = models.IntegerField(default=0, null=False)  # 问卷id
+    choiceNumber = models.IntegerField(default=0, null=False)
     A = models.CharField(max_length=200, default='', null=True)
     B = models.CharField(max_length=200, default='', null=True)
     C = models.CharField(max_length=200, default='', null=True)
