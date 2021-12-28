@@ -631,9 +631,21 @@ def pieChartDraw(request):
         perC = count3 / total
         perD = count4 / total
         plt.title(title+"\n"+Qname)
-        labels = ['A:'+qA, 'B:'+qB, 'C:'+qC, 'D:'+qD]
+        cA = 'A: '+qA
+        cB = 'B: '+qB
+        cC = 'C: '+qC
+        cD = 'D: '+qD
+        if perA == 0:
+            cA = None
+        if perB == 0:
+            cB = None
+        if perC == 0:
+            cC = None
+        if perD == 0:
+            cD = None
+        labels = [cA, cB, cC, cD]
         sizes = [perA, perB, perC, perD]
-        explode = (0, 0.0, 0, 0)
+        explode = (0, 0, 0, 0)
         plt.pie(sizes, explode=explode, labels=labels, autopct='%1.1f%%', shadow=False, startangle=90)
         plt.show()
         return JsonResponse(data={'message': 'ok'}, json_dumps_params={'ensure_ascii': False})
