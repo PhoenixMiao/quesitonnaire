@@ -45,7 +45,7 @@ urlpatterns = [
     url(r'^poll_file/(.+)$',poll_views.file),
     url(r'^poll_template/(.+)$',poll_views.templateFiles),
     url(r'^poll_download/(.+)$',poll_views.fileDown),
-    url(r'^poll_dynamic_filtering/(.+)$',poll_views.dynamic_filtering),
+    url(r'^dynamic_download/(.+)$',poll_views.dynamic_fileDown),
     url(r'^whitelist_search/(.+)$',poll_views.whitelist_search),
     url(r'^blacklist_search/(.+)$', poll_views.blacklist_search),
     url(r'^dynamic_filtering/(.+)$',poll_views.dynamic_filtering),

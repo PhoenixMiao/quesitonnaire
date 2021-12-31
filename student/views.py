@@ -21,13 +21,12 @@ from openpyxl import load_workbook
 @permitted_methods(["POST"])
 def student(request):
     stu_mes = request_body_serialize_init(request)
-    userId = '20130053'
-    page_num = request.GET.get('p', 1)
-    length = request.GET.get('l', 5)
+    # print(stu_mes)
+    page_num = stu_mes.get('p',1)
+    length = stu_mes.get('l', 5)
+    #print(page_num,length)
 #    permission = '4'
-    relations = Instructor_Student.objects.filter(zgh=userId)
-    xhs = [ele.xh for ele in relations]
-    students = Student.objects.filter(xh__in=xhs).order_by('xh')
+    students = Student.objects.filter().order_by('xh')
     for item in stu_mes.keys():
         if item == "xm":
             students  = students.filter(xm__icontains=stu_mes.get(item))

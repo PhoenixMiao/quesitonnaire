@@ -15,7 +15,9 @@ from openpyxl import Workbook
 from openpyxl import load_workbook
 import wx
 import wx.grid
+import matplotlib; matplotlib.use('TKAgg')
 import matplotlib.pyplot as plt
+plt.rcParams['font.sans-serif']=['SimHei']
 import numpy as np
 
 
@@ -112,6 +114,14 @@ def whitelist_delete(request, pollId):
 @permitted_methods(["POST"])
 def whitelist_import(request, pollId):
     tmpFile = request.FILES.get('whitelist')
+    print(tmpFile,type(tmpFile)) #whitelist.xlsx <class 'django.core.files.uploadedfile.InMemoryUploadedFile'>
+    # if not tmpFile:
+    #     return ...
+    # save_path = os.path.join("temp_data", tmpFile.name)
+    # destination = open(save_path, 'wb+')
+    # for chunk in tmpFile.chunks():
+    #     destination.write(chunk)
+    # destination.close()
     workbook_ = load_workbook(tmpFile)
     sheetnames = workbook_.get_sheet_names()
     sheet = workbook_.get_sheet_by_name(sheetnames[0])
@@ -255,39 +265,47 @@ def poll_pause(request,pollId):
         return JsonResponse(data={'message': 'ok'}, json_dumps_params={'ensure_ascii': False})
 
 
-@permitted_methods(["POST"])
-def record_add_judge(request):
-    body_list = request_body_serialize_init(request)
-    xh = body_list.get('xh')
-    questionnaire_id = body_list.get('questionnaireId')
+def record_add_judge(xh,questionnaire_id):
+    res = []
     questionnaires = Questionnaire.objects.filter(id=questionnaire_id)
     questionnaire = Questionnaire.objects.get(id=questionnaire_id)
     if len(questionnaires) == 0:
-        return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '没有该问卷'},
-                            json_dumps_params={'ensure_ascii': False})
+        return [False,'没有该问卷']
+        # return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '没有该问卷'},
+        #                     json_dumps_params={'ensure_ascii': False})
     stu = Student.objects.filter(xh=xh)
     if len(stu)==0:
-        return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '没有该学生'},
-                            json_dumps_params={'ensure_ascii': False})
-    whitelist = Whitelist.objects.filter(questionnaireId=questionnaire_id,xh=xh)
-    blacklist = Blacklist.objects.filter(questionnaireId=questionnaire_id,xh=xh)
-    if len(whitelist)==0:
-        return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '该学生并不在白名单内'},
-                            json_dumps_params={'ensure_ascii': False})
-    if len(blacklist)!=0:
-        return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '该学生并在黑名单内'},
-                            json_dumps_params={'ensure_ascii': False})
+        return [False,'没有该学生']
+        # return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '没有该学生'},
+        #                     json_dumps_params={'ensure_ascii': False})
     questionnaire_dic = model_to_dict(questionnaire)
+    if(questionnaire_dic.get('scope')==1):
+        blacklist = Blacklist.objects.filter(questionnaireId=questionnaire_id,xh=xh)
+        # if len(whitelist)==0:
+        #     return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '该学生并不在白名单内'},
+        #                         json_dumps_params={'ensure_ascii': False})
+        if len(blacklist)!=0:
+            # return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '该学生并在黑名单内'},
+            #                     json_dumps_params={'ensure_ascii': False})
+            return [False,'该学生在黑名单中']
+    else:
+        whitelist = Whitelist.objects.filter(questionnaireId=questionnaire_id, xh=xh)
+        if len(whitelist) == 0:
+                 # return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '该学生并不在白名单内'},
+                 #                     json_dumps_params={'ensure_ascii': False})
+            # return JsonResponse(status=HTTPStatus.NOT_ACCEPTABLE, data={'error': '该问卷并不在发布状态'},
+            #                     json_dumps_params={'ensure_ascii': False})
+                return [False,'该学生并不在白名单内']
     if questionnaire_dic.get("status") != 1:
-        return JsonResponse(status=HTTPStatus.NOT_ACCEPTABLE, data={'error': '该问卷并不在发布状态'},
-                            json_dumps_params={'ensure_ascii': False})
+        return [False,"该问卷并不在发布状态"]
     recorded = Record.objects.filter(questionnaireId=questionnaire_id,xh=xh)
     if len(recorded) != 0:
         if questionnaire_dic.get("oneoff") == 0:
-            return JsonResponse(status=HTTPStatus.NOT_ACCEPTABLE, data={'error': '该问卷一人一份，只能修改单人记录'},
-                                json_dumps_params={'ensure_ascii': False})
-    return JsonResponse(data={'message': '该学生可以填写问卷'}, json_dumps_params={'ensure_ascii': False})
-
+            # return JsonResponse(status=HTTPStatus.NOT_ACCEPTABLE, data={'error': '该问卷一人一份，只能修改单人记录'},
+            #                     json_dumps_params={'ensure_ascii': False})
+            return [False,'该问卷一人一份，只能修改单人记录']
+    # return JsonResponse(data={'message': '该学生可以填写问卷'}, json_dumps_params={'ensure_ascii': False})
+    return [True,'该学生可以填写问卷']
 
 @permitted_methods(["POST"])
 def record_add(request):
@@ -475,7 +493,7 @@ def dynamic_filtering(request,questionnaireId):
         tmp.append(model_to_dict(ele,fields=['key','values']))
     for ele in tmp:
         value = "'"+ele['values']+"'"
-        l ="SELECT * FROM" + contants + "WHERE"+ele['key']+"="+value
+        l ="SELECT * FROM" + contants + "WHERE "+ele['key']+"="+value
         students = students.raw(l)
         if len(students)==0:
             return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '没有符合条件的学生'}, json_dumps_params={'ensure_ascii': False})
@@ -591,8 +609,36 @@ def fileDown(request,questionnaireId):
                 j = j + 1
     return response
 
-
 @permitted_methods(["GET"])
+def dynamic_fileDown(request,questionnaireId):
+    relations = Whitelist.objects.filter(questionnaireId=questionnaireId)
+    xhs = [ele.xh for ele in relations]
+    students = Student.objects.filter(xh__in=xhs).order_by('xh')
+    # res = model_to_dict(students,fields=['xh','xm','glyx','cc'])
+    conditions = Condition.objects.filter(questionnaireId=questionnaireId)
+    tmp = []
+    contants = " student "
+    for ele in conditions:
+        tmp.append(model_to_dict(ele,fields=['key','values']))
+    for ele in tmp:
+        value = '"'+ele['values']+'"'
+        l ="SELECT * FROM" + contants + "WHERE "+ele['key']+" = "+value
+        students = students.raw(l)
+        if len(students)==0:
+            return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '没有符合条件的学生'}, json_dumps_params={'ensure_ascii': False})
+    res = []
+    for ele in students:
+        res.append(model_to_dict(ele,fields=['xh','xm','xq','glyx']))
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment;filename=dynamic.csv'
+    response.write(codecs.BOM_UTF8)
+    writer = csv.writer(response)
+    writer.writerow(["学号","姓名","校区","管理院系"])
+    for ele in res:
+        writer.writerow([ele.get('xh'),ele.get('xm'),ele.get('xq'),ele.get('glyx')])
+    return response
+
+@permitted_methods(["POST"])
 def pieChartDraw(request):
     dict = request_body_serialize_init(request)
     rec = Record.objects.filter(questionnaireId=dict["questionnaireId"])
@@ -630,7 +676,6 @@ def pieChartDraw(request):
         perB = count2 / total
         perC = count3 / total
         perD = count4 / total
-        plt.title(title+"\n"+Qname)
         cA = 'A: '+qA
         cB = 'B: '+qB
         cC = 'C: '+qC
@@ -644,9 +689,10 @@ def pieChartDraw(request):
         if perD == 0:
             cD = None
         labels = [cA, cB, cC, cD]
-        sizes = [perA, perB, perC, perD]
+        sizes = np.array([perA, perB, perC, perD])
         explode = (0, 0, 0, 0)
         plt.pie(sizes, explode=explode, labels=labels, autopct='%1.1f%%', shadow=False, startangle=90)
+        plt.title(title+"\n"+Qname)
         plt.show()
         return JsonResponse(data={'message': 'ok'}, json_dumps_params={'ensure_ascii': False})
     else:
@@ -692,20 +738,27 @@ class AnswerUserLogin(wx.Frame):
             warning.SetForegroundColour(wx.RED)
             self.vbox.Add(warning, proportion=0, flag=wx.FIXED_MINSIZE | wx.TOP | wx.CENTER, border=20)
         else:
-            globalVariable.user_id=userId
-            if globalVariable.typesList[0] == 0:
-                operate = AnswerChoice(None, title="填写问卷", size=(1024, 668))
-                operate.Show()
-            if globalVariable.typesList[0] == 1:
-                operate = AnswerFill(None, title="填写问卷", size=(1024, 668))
-                operate.Show()
-            self.Close(True)
+            limit=record_add_judge(userId,globalVariable.pollid)
+            if limit[0]==False:
+                wx.MessageBox('该问卷暂不对您开放', 'warning', wx.OK | wx.CANCEL)
+                self.Close()
+            else:
+                globalVariable.user_id = userId
+                if globalVariable.typesList[0] == 0:
+                    operate = AnswerChoice(None, title=globalVariable.pollTitle, size=(1024, 668))
+                    operate.Show()
+                if globalVariable.typesList[0] == 1:
+                    operate = AnswerFill(None, title=globalVariable.pollTitle, size=(1024, 668))
+                    operate.Show()
+                self.Close(True)
 
 def string_after_deal(topic):
     length = len(topic)
     ret = ""
     if length > 25:
         ret = topic[0:25] + '\n' + topic[25:length]
+    else:
+        ret=topic
     return ret
 
 class AnswerFill(wx.Frame):
@@ -714,10 +767,11 @@ class AnswerFill(wx.Frame):
         self.Center()
         self.pnl = wx.Panel(self)
         self.topic = globalVariable.get_current()
+        print(self.topic)
 
         self.vbox = wx.BoxSizer(wx.VERTICAL)
 
-        logo = wx.StaticText(self.pnl, label="问卷填写")
+        logo = wx.StaticText(self.pnl, label=globalVariable.pollTitle)
         font = logo.GetFont()
         font.PointSize += 30
         font = font.Bold()
@@ -761,11 +815,11 @@ class AnswerFill(wx.Frame):
         if nextType==-1:
             self.Close(True)
         if nextType==0:
-            operation = AnswerChoice(None, title="问卷填写", size=(1024, 668))
+            operation = AnswerChoice(None, title=globalVariable.pollTitle, size=(1024, 668))
             operation.Show()
             self.Close(True)
         if nextType==1:
-            operation = AnswerFill(None,title="问卷填写", size=(1024, 668))
+            operation = AnswerFill(None,title=globalVariable.pollTitle, size=(1024, 668))
             operation.Show()
             self.Close(True)
 
@@ -785,7 +839,7 @@ class AnswerChoice(wx.Frame):
         self.vbox = wx.BoxSizer(wx.VERTICAL)
         self.topic = globalVariable.get_current()
 
-        logo = wx.StaticText(self.pnl, label="问卷填写")
+        logo = wx.StaticText(self.pnl, label=globalVariable.pollTitle)
         font = logo.GetFont()
         font.PointSize += 30
         font = font.Bold()
@@ -859,11 +913,11 @@ class AnswerChoice(wx.Frame):
         if nextType == -1:
             self.Close(True)
         if nextType == 0:
-            operation = AnswerChoice(None ,title="问卷填写", size=(1024, 668))
+            operation = AnswerChoice(None ,title=globalVariable.pollTitle, size=(1024, 668))
             operation.Show()
             self.Close(True)
         if nextType == 1:
-            operation = AnswerFill(None,title="问卷填写", size=(1024, 668))
+            operation = AnswerFill(None,title=globalVariable.pollTitle, size=(1024, 668))
             operation.Show()
             self.Close(True)
 
@@ -875,6 +929,8 @@ class globalVariable:
     titlesList=[]
     count=0
     user_id=None
+    pollTitle=''
+    pollid=None
 
     def __init__(self):
         pass
@@ -889,7 +945,7 @@ class globalVariable:
 
     @classmethod
     def get_current(cls):
-        print( cls.titlesList[cls.count])
+        print(cls.titlesList[cls.count])
         return cls.titlesList[cls.count]
 
     @classmethod
@@ -912,6 +968,7 @@ def End():
 #回答问卷接口
 @permitted_methods(["GET"])
 def answer(request, pollId):
+    globalVariable.pollid=pollId
     questionnaires = Questionnaire.objects.filter(id=pollId)
     if len(questionnaires) == 0:
         return JsonResponse(status=HTTPStatus.NO_CONTENT, data={'error': '没有该问卷'},
@@ -949,29 +1006,34 @@ def answer(request, pollId):
     globalVariable.answers=[]
     globalVariable.typesList=types
     globalVariable.titlesList=titles
+    globalVariable.pollTitle=questionnaire_dict['title']
 
     if len(types) > 0:
         app = wx.App()
-        operate=AnswerUserLogin(None,title="填写问卷", size=(1100, 700))
+        operate=AnswerUserLogin(None,title=globalVariable.pollTitle, size=(1100, 700))
         operate.Show()
         app.MainLoop()
+        print('end')
 
     if len(globalVariable.answers)<len(globalVariable.typesList):
         ret = {'message': 'cancel'}
         return JsonResponse(data=ret, json_dumps_params={'ensure_ascii': False})
-    retValue = End()
-    if retValue == wx.OK:
-        globalVariable.answer_padding()
-        answers = globalVariable.get_answer()
-        Record.objects.create(xh=globalVariable.user_id, questionnaireId=pollId, v1=answers[0], v2=answers[1], v3=answers[2], v4=answers[3],
-                              v5=answers[4], v6=answers[5], v7=answers[6], v8=answers[7], v9=answers[8], v10=answers[9],
-                              v11=answers[10], v12=answers[11], v13=answers[12], v14=answers[13], v15=answers[14],
-                              v16=answers[15], v17=answers[16], v18=answers[17], v19=answers[18], v20=answers[19])
-        ret = {'message': 'complete'}
-        return JsonResponse(data=ret, json_dumps_params={'ensure_ascii': False})
     else:
-        ret = {'message': 'cancel'}
-        return JsonResponse(data=ret, json_dumps_params={'ensure_ascii': False})
+        retValue = End()
+        if retValue==wx.OK:
+            globalVariable.answer_padding()
+            answers = globalVariable.get_answer()
+            Record.objects.create(xh=globalVariable.user_id, questionnaireId=pollId, v1=answers[0], v2=answers[1],
+                                  v3=answers[2], v4=answers[3],
+                                  v5=answers[4], v6=answers[5], v7=answers[6], v8=answers[7], v9=answers[8],
+                                  v10=answers[9],
+                                  v11=answers[10], v12=answers[11], v13=answers[12], v14=answers[13], v15=answers[14],
+                                  v16=answers[15], v17=answers[16], v18=answers[17], v19=answers[18], v20=answers[19])
+            ret = {'message': 'complete'}
+            return JsonResponse(data=ret, json_dumps_params={'ensure_ascii': False})
+        else:
+            ret = {'message': 'cancel'}
+            return JsonResponse(data=ret, json_dumps_params={'ensure_ascii': False})
 
 
 class CreateUserLogin(wx.Frame):
@@ -1013,10 +1075,63 @@ class CreateUserLogin(wx.Frame):
             warning.SetForegroundColour(wx.RED)
             self.vbox.Add(warning, proportion=0, flag=wx.FIXED_MINSIZE | wx.TOP | wx.CENTER, border=20)
         else:
-            Total.user_id=userId
-            operation = UserOperation(None, title="问卷系统", size=(1100, 700))
-            operation.Show()
+            Total.user_id = userId
+            polltitle = pollTitle(None, title="问卷系统", size=(1100, 700))
             self.Close(True)
+            polltitle.Show()
+
+
+class pollTitle(wx.Frame):
+    def __init__(self, *args, **kw):
+        super(pollTitle, self).__init__(*args, **kw)
+        self.Center()
+        self.pnl = wx.Panel(self)
+        self.vbox = wx.BoxSizer(wx.VERTICAL)
+
+        logo = wx.StaticText(self.pnl, label="设计问卷标题")
+        font = logo.GetFont()
+        font.PointSize += 30
+        font = font.Bold()
+        logo.SetFont(font)
+        self.vbox.Add(logo, proportion=0, flag=wx.FIXED_MINSIZE | wx.TOP | wx.CENTER, border=140)
+
+        self.title = wx.TextCtrl(self.pnl, -1, "", size=(700, 100), style=wx.TE_MULTILINE)
+        self.title.SetMaxLength(50)
+        font = wx.Font(wx.FontInfo(15))
+        self.title.SetFont(font)
+        self.vbox.Add(self.title, proportion=0, flag=wx.FIXED_MINSIZE | wx.TOP | wx.CENTER, border=10)
+
+        warnning = wx.StaticText(self.pnl, label="题目最多50字")
+        self.vbox.Add(warnning, proportion=0, flag=wx.FIXED_MINSIZE | wx.TOP | wx.CENTER, border=5)
+
+        submitButton = wx.Button(self.pnl, label="确认提交", size=(80, 25))
+        submitButton.Bind(wx.EVT_BUTTON, self.submit)
+        self.vbox.Add(submitButton, proportion=0, flag=wx.FIXED_MINSIZE | wx.TOP | wx.CENTER, border=20)
+
+        self.pnl.SetSizer(self.vbox)
+
+    def submit(self, event):
+        if len(self.title.GetValue())<=0:
+            ret = wx.MessageBox('尚未填写问卷标题，是否确认提交', 'warning', wx.OK | wx.CANCEL)
+            if ret == wx.OK:
+                Total.pollTitle = self.title.GetValue()
+                operation = UserOperation(None, title="问卷系统", size=(1100, 700))
+                operation.Show()
+                self.Close(True)
+            else:
+                pass
+        else:
+            ret = wx.MessageBox('是否确认提交', 'warning', wx.OK | wx.CANCEL)
+            if ret == wx.OK:
+                Total.pollTitle=self.title.GetValue()
+                operation = UserOperation(None, title="问卷系统", size=(1100, 700))
+                operation.Show()
+                self.Close(True)
+            else:
+                pass
+
+
+
 
 
 class UserOperation(wx.Frame):
@@ -1077,6 +1192,7 @@ class Total():
     total_title_number=0
     total_tiltes=[]
     user_id=None
+    pollTitle=''
     def __init__(self):
         pass
 
@@ -1299,7 +1415,7 @@ def submit_to_database():
             for i in range(Total.total_title_number,20):
                 Total.add_title([None])
                 types.append(2)
-            Questionnaire.objects.create(status=-1, oneoff=1, title='no', scope=1, creatorId=Total.user_id,
+            Questionnaire.objects.create(status=0, oneoff=True, title=Total.pollTitle, scope=1, creatorId=Total.user_id,
                                         k1=Total.total_tiltes[0][0],k2=Total.total_tiltes[1][0],k3=Total.total_tiltes[2][0],
                                         k4=Total.total_tiltes[3][0],k5=Total.total_tiltes[4][0],k6=Total.total_tiltes[5][0],
                                         k7=Total.total_tiltes[6][0],k8=Total.total_tiltes[7][0],k9=Total.total_tiltes[8][0],
@@ -1325,9 +1441,10 @@ def submit_to_database():
 @permitted_methods(["GET"])
 def create(request):
     app = wx.App()
-    operate = CreateUserLogin(None, title="填写问卷", size=(1100, 700))
+    operate = CreateUserLogin(None, title='问卷系统', size=(1100, 700))
     operate.Show()
     app.MainLoop()
+    print('end')
     ret = {'message': 'ok'}
     return JsonResponse(data=ret, json_dumps_params={'ensure_ascii': False})
 
